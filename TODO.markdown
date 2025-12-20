@@ -1,0 +1,11 @@
+* TODO Api sections [4/9]
+- [X] Modern GPU memory management
+- [X] Command and queues 
+- [X] Compute pipeline
+- [X] Root arguments
+- [-] Barriers and fences
+- [ ] Textures
+- [ ] Graphic pipeline
+- [ ] Render passes
+- [ ] Mutable static Ccnstants
+  - Impossibile due to vulkan limitation

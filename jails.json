@@ -1,0 +1,12 @@
+{
+    "local_modules": [
+        "modules"
+        "."
+    ],
+    "roots": [
+        "module.jai",
+        "first.jai"
+    ],
+    "build_root": "first.jai",
+    "auto_insert_parentheses": true
+}

@@ -1,0 +1,11 @@
+.build/
+*.dSYM
+*.lib
+*.dll
+*.exe
+*.pdb
+*.obj
+*.exp
+*.a
+*.dylib
+tests/test
