@@ -4,7 +4,7 @@ Memory_Kind :: enum {
 	READBACK;
 };
 
-Texture_Descriptor :: [2]u64; // Actual size is u64 as it is split in 2 handles, one for the sampler_image and the other for the raw image for compute work.
+Texture_Descriptor :: u32; // Actual size is u64 as it is split in 2 handles, one for the sampler_image and the other for the raw image for compute work.
 
 
 
@@ -211,6 +211,47 @@ Texture_Info :: struct{
 	usage: Texture.Usage = .SAMPLED | .TRANSFER_DST | .TRANSFER_SRC;
 }
 
+
+
+gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT, tag : string = "Untagged") -> *void {
+	alloc_info: VmaAllocationCreateInfo ;
+	alloc_info.usage = ifx kind != .GPU then .AUTO else .GPU_ONLY;
+	alloc_info.flags = ifx kind != .GPU then .MAPPED_BIT | ifx kind == .DEFAULT then .HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+	allocation: GPU_Allocation;
+	allocation.size = xx size;
+
+	buffer_info: VkBufferCreateInfo;
+	buffer_info.size = cast(u64, size);
+	buffer_info.usage = .SHADER_DEVICE_ADDRESS_BIT | .TRANSFER_SRC_BIT | .TRANSFER_DST_BIT | .SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
+	vk_assert(vmaCreateBuffer(device.allocator, *buffer_info, *alloc_info, *allocation.buffer, *allocation.handle, *allocation.info));
+
+	ptr : * void = ifx kind != .GPU then allocation.info.pMappedData else xx allocation.handle;
+	log("Allocated bytes % with tag % at address %", size, tag, ptr);
+	table_add(*device.allocator.table, ptr, allocation);
+	return ptr;
+}
+
+gpu_malloc :: (count: s64, $type: Type, kind: Memory_Kind = .DEFAULT, tag : string = "Untagged") -> *type{
+	#if type == Texture_Descriptor {
+		return gpu_malloc(xx align_to(xx (count * size_of(u64)), 128), align_of(u64), kind, tag);
+	}else{
+		return gpu_malloc(count * size_of(type), align_of(type), kind, tag);
+	}
+}
+
+gpu_free :: (ptr: *void, loc := #caller_location){
+	allocation := table_find_pointer(*device.allocator.table, ptr);
+	vmaDestroyBuffer(device.allocator, allocation.buffer, allocation);
+}
+
+gpu_host_to_device_address :: (ptr: *void) -> *void{
+	allocation := table_find_pointer(*device.allocator.table, ptr);
+	device_adress_info: VkBufferDeviceAddressInfo;
+	device_adress_info.buffer = allocation.buffer;
+	return xx vkGetBufferDeviceAddress(device, *device_adress_info);
+}
+
+
 gpu_create_texture :: (using info: Texture_Info, kind: Memory_Kind = .GPU) ->  Texture{
 	texture: Texture;
 	texture.usage = usage;
@@ -257,93 +298,92 @@ gpu_create_texture :: (using info: Texture_Info, kind: Memory_Kind = .GPU) ->  T
 	return texture;
 }
 
-gpu_texture_alligment :: () {
+TEXTURE_HEAP_DIRECT_ADDRESSING :: true;
 
+#if TEXTURE_HEAP_DIRECT_ADDRESSING {
+	gpu_create_texture_heap :: (count: s64) -> *Texture_Descriptor, *Texture_Descriptor{
+		data := gpu_malloc(count, Texture_Descriptor);
+		return data, data + align_to(count, 32) / 2;
+	}
+	
+	gpu_create_texture_view_descriptor :: (texture: Texture, ptr: *Texture_Descriptor){
+		get_instance_proc_add(instance, "vkGetDescriptorEXT");
 
-}
-gpu_create_texture_view_descriptor :: (texture: Texture, ptr: *Texture_Descriptor, index: s32){
-	allocation := table_find_pointer(*device.allocator.table, ptr);
-	destination: * void = cast(*Texture_Descriptor, ptr) + index;
-	assert(allocation != null, "could not find a valid allocation");
-	get_instance_proc_add(instance, "vkGetDescriptorEXT");
+		get_info: VkDescriptorGetInfoEXT;
+		get_info.type = .COMBINED_IMAGE_SAMPLER;
 
-	get_info: VkDescriptorGetInfoEXT;
-	get_info.type = .COMBINED_IMAGE_SAMPLER;
-
-	sampler: VkSampler;
-	sampler_info: VkSamplerCreateInfo ;
-	sampler_info.magFilter = .NEAREST;
-	sampler_info.minFilter = .NEAREST;
-	vkCreateSampler(device, *sampler_info, null, *sampler);
+		sampler: VkSampler;
+		sampler_info: VkSamplerCreateInfo ;
+		sampler_info.magFilter = .NEAREST;
+		sampler_info.minFilter = .NEAREST;
+		vkCreateSampler(device, *sampler_info, null, *sampler);
 	
 	
-	image_info: VkDescriptorImageInfo;
-	image_info.imageView = texture.view;
-	image_info.imageLayout = xx texture.layout;
-	image_info.sampler = sampler;
-	get_info.data = .{pCombinedImageSampler =  *image_info};
+		image_info: VkDescriptorImageInfo;
+		image_info.imageView = texture.view;
+		image_info.imageLayout = xx texture.layout;
+		image_info.sampler = sampler;
+		get_info.data = .{pCombinedImageSampler =  *image_info};
 
-	vkGetDescriptorEXT(device, *get_info, 4, destination);
+		vkGetDescriptorEXT(device, *get_info, 4, ptr);
+	}
 
+	gpu_create_rw_texture_view_descriptor :: (texture: Texture, ptr: *Texture_Descriptor){
+		get_instance_proc_add(instance, "vkGetDescriptorEXT");
+		get_info: VkDescriptorGetInfoEXT;
+		get_info.type = .STORAGE_IMAGE;
+	
+		image_info: VkDescriptorImageInfo;
+		image_info.imageView = texture.view;
+		image_info.imageLayout = xx texture.layout;
+		get_info.data = .{pStorageImage =  *image_info};
+
+		vkGetDescriptorEXT(device, *get_info, 4, ptr);
+	}
+	
+}else{
+	gpu_create_texture_view_descriptor :: (texture: Texture, ptr: *Texture_Descriptor, index: s32){
+		allocation := table_find_pointer(*device.allocator.table, ptr);
+		destination: * void = cast(*Texture_Descriptor, ptr) + index;
+		assert(allocation != null, "could not find a valid allocation");
+		get_instance_proc_add(instance, "vkGetDescriptorEXT");
+
+		get_info: VkDescriptorGetInfoEXT;
+		get_info.type = .COMBINED_IMAGE_SAMPLER;
+
+		sampler: VkSampler;
+		sampler_info: VkSamplerCreateInfo ;
+		sampler_info.magFilter = .NEAREST;
+		sampler_info.minFilter = .NEAREST;
+		vkCreateSampler(device, *sampler_info, null, *sampler);
 	
 	
-}
+		image_info: VkDescriptorImageInfo;
+		image_info.imageView = texture.view;
+		image_info.imageLayout = xx texture.layout;
+		image_info.sampler = sampler;
+		get_info.data = .{pCombinedImageSampler =  *image_info};
 
-gpu_create_rw_texture_view_descriptor :: (texture: Texture, destination: *Texture_Descriptor, index: s32){
-	allocation := table_find_pointer(*device.allocator.table, destination);
-	get_instance_proc_add(instance, "vkGetDescriptorEXT");
+		vkGetDescriptorEXT(device, *get_info, 4, destination);
+	}
 
-	get_info: VkDescriptorGetInfoEXT;
-	get_info.type = .STORAGE_IMAGE;
+	gpu_create_rw_texture_view_descriptor :: (texture: Texture, destination: *Texture_Descriptor, index: s32){
+		allocation := table_find_pointer(*device.allocator.table, destination);
+		get_instance_proc_add(instance, "vkGetDescriptorEXT");
+
+		get_info: VkDescriptorGetInfoEXT;
+		get_info.type = .STORAGE_IMAGE;
 	
-	image_info: VkDescriptorImageInfo;
-	image_info.imageView = texture.view;
-	image_info.imageLayout = xx texture.layout;
-	get_info.data = .{pStorageImage =  *image_info};
+		image_info: VkDescriptorImageInfo;
+		image_info.imageView = texture.view;
+		image_info.imageLayout = xx texture.layout;
+		get_info.data = .{pStorageImage =  *image_info};
 
-	log("PTR: %", destination);
-	vkGetDescriptorEXT(device, *get_info, 4, cast(*u8, destination) + allocation.size / 2);
-}
-
-
-gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT, tag : string = "Untagged") -> *void {
-	alloc_info: VmaAllocationCreateInfo ;
-	alloc_info.usage = ifx kind != .GPU then .AUTO else .GPU_ONLY;
-	alloc_info.flags = ifx kind != .GPU then .MAPPED_BIT | ifx kind == .DEFAULT then .HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-	allocation: GPU_Allocation;
-	allocation.size = xx size;
-
-	buffer_info: VkBufferCreateInfo;
-	buffer_info.size = cast(u64, size);
-	buffer_info.usage = .SHADER_DEVICE_ADDRESS_BIT | .TRANSFER_SRC_BIT | .TRANSFER_DST_BIT | .SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
-	vk_assert(vmaCreateBuffer(device.allocator, *buffer_info, *alloc_info, *allocation.buffer, *allocation.handle, *allocation.info));
-
-	ptr : * void = ifx kind != .GPU then allocation.info.pMappedData else xx allocation.handle;
-	log("Allocated bytes % with tag % at address %", size, tag, ptr);
-	table_add(*device.allocator.table, ptr, allocation);
-	return ptr;
-}
-
-gpu_malloc :: (count: s64, $type: Type, kind: Memory_Kind = .DEFAULT, tag : string = "Untagged") -> *type{
-	#if type == Texture_Descriptor {
-		return gpu_malloc(xx align_to(xx (count * size_of(u64)), 128), align_of(u64), kind, tag);
-	}else{
-		return gpu_malloc(count * size_of(type), align_of(type), kind, tag);
+		log("PTR: %", destination);
+		vkGetDescriptorEXT(device, *get_info, 4, cast(*u8, destination) + allocation.size / 2);
 	}
 }
-
-gpu_free :: (ptr: *void, loc := #caller_location){
-	allocation := table_find_pointer(*device.allocator.table, ptr);
-	vmaDestroyBuffer(device.allocator, allocation.buffer, allocation);
-}
-
-gpu_host_to_device_address :: (ptr: *void) -> *void{
-	allocation := table_find_pointer(*device.allocator.table, ptr);
-	device_adress_info: VkBufferDeviceAddressInfo;
-	device_adress_info.buffer = allocation.buffer;
-	return xx vkGetBufferDeviceAddress(device, *device_adress_info);
-}
-
+	
 #scope_module;
 
 GPU_Allocation :: struct {

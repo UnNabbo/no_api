@@ -40,7 +40,7 @@ main :: (){
 	fragment_ir := gpu_generate_shader_ir("shader.spv", "f_main");
 	gpipeline := gpu_create_graphic_pipeline(vertex_ir, fragment_ir);
 	
-	texture_heap := gpu_malloc(1, Texture_Descriptor, tag = "Texture Heap");
+	texture_heap, rw_texture_heap := gpu_create_texture_heap(16);
 
 	upload_memory := gpu_malloc(image_size);
     memcpy(upload_memory, image_data, image_size);
@@ -53,8 +53,8 @@ main :: (){
 	
 	dst_texture := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .TRANSFER_SRC | .TRANSFER_DST});
 
-	gpu_create_rw_texture_view_descriptor(dst_texture, texture_heap, 0);
-	gpu_create_texture_view_descriptor(texture, texture_heap, 0);
+	gpu_create_rw_texture_view_descriptor(dst_texture, *rw_texture_heap[0]);
+	gpu_create_texture_view_descriptor(texture, *texture_heap[0]);
 	
 	upload_buffer := gpu_start_command_recording(*compute_queue);
 
