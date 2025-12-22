@@ -8,7 +8,7 @@
 #import "Process";
 #import "Metaprogram_Plugins";
 
-plugin_names: [..] string;
+
 plugins: [..]*Metaprogram_Plugin;
 
 start_workspace :: (w: Workspace) #compile_time {
@@ -115,10 +115,11 @@ create_workspace :: (file: string, src_path := "examples", run := false) -> Work
 	return w;
 }
 
+plugin_names :: string.[];
 #run {
 	set_working_directory(#filepath);
 	defer set_build_options_dc(.{do_output=false});
-
+	
 	args := get_build_options().compile_time_command_line;
 	run_all := true;
 	for args {
@@ -127,7 +128,6 @@ create_workspace :: (file: string, src_path := "examples", run := false) -> Work
 				run_all = false;
 		}
 	}
-
 	
 	w1 := create_workspace("basic", run = true);
     

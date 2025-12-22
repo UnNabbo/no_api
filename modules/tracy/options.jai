@@ -19,7 +19,7 @@ handle_one_option :: (p: *Metaprogram_Plugin, options: [] string, cursor: int) -
         arg := options[cursor+1];
         result, success, remainder := string_to_int(arg);
         if !success {
-            log_error("[Iprof] ommand line: Argument to -min_size was expected to be an integer, but we got '%'.\n", arg);
+            log_error("[Iprof] Command line: Argument to -min_size was expected to be an integer, but we got '%'.\n", arg);
             return cursor + 2;
         }
 

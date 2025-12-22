@@ -52,10 +52,10 @@ create_instance :: () -> Instance	 {
 	//TODO MAYBE CHECK FOR SUPPORT
 	#if RENDERING_DEBUG{
 		extensions: []* u8 = .[
-		VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME, VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME, VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME, "VK_EXT_debug_utils"];
+		VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME, "VK_EXT_debug_utils"];
 	}else{
 		extensions: []* u8 = .[
-		VK_KHR_SURFACE_EXTENSION_NAME, VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME, VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME];
+		VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME];
 	}
 	
 	instance_info.enabledExtensionCount = xx extensions.count;
@@ -238,7 +238,11 @@ create_device :: (physical_device: *Physical_Device, queues: ..Queue_Request_Ent
 	device_features: VkPhysicalDeviceFeatures2;
 
 
+
+	descriptor_buffer : VkPhysicalDeviceDescriptorBufferFeaturesEXT = {descriptorBuffer = 1};
+
 	features13: VkPhysicalDeviceVulkan13Features;
+	features13.pNext = *descriptor_buffer;
 	features13.dynamicRendering = 1;
 	features13.synchronization2 = 1;
 
@@ -259,7 +263,7 @@ create_device :: (physical_device: *Physical_Device, queues: ..Queue_Request_Ent
 	device_create_info.pNext = *device_features;
 
 	device_extensions: [] *u8 = .[
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, "VK_KHR_unified_image_layouts", VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
 	];
 	
 	device_create_info.ppEnabledExtensionNames = device_extensions.data;

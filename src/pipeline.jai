@@ -27,11 +27,15 @@ gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 	compute_layout.pPushConstantRanges = *push_constant_info;
 	compute_layout.pushConstantRangeCount = 1;
 	
+	texture_layout := create_texture_heap_descriptor_set_layout();
+	compute_layout.pSetLayouts = *texture_layout;
+	compute_layout.setLayoutCount = 1;
+	
 	vk_assert(vkCreatePipelineLayout(device, *compute_layout, null, *pipeline.layout));
 
 	compute_pipeline_create_info: VkComputePipelineCreateInfo;
 	compute_pipeline_create_info.layout = pipeline.layout;
-	compute_pipeline_create_info.stage;
+	compute_pipeline_create_info.flags = .CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
 	compute_pipeline_create_info.stage.stage = .COMPUTE_BIT;
 	compute_pipeline_create_info.stage.module = ir;
@@ -63,3 +67,35 @@ gpu_generate_shader_ir :: (path: string, $entry_point: string = "main") -> Shade
 }
 
 #scope_file;
+
+
+create_texture_heap_descriptor_set_layout :: () -> VkDescriptorSetLayout{
+	layout_binding: [1]VkDescriptorSetLayoutBinding;
+    layout_binding[0].binding = 0;
+	layout_binding[0].descriptorType = .COMBINED_IMAGE_SAMPLER;
+	layout_binding[0].descriptorCount = 65565;
+	layout_binding[0].stageFlags = .ALL;
+	layout_binding[0].pImmutableSamplers = null;
+
+	info: VkDescriptorSetLayoutCreateInfo;
+	info.flags = .DESCRIPTOR_BUFFER_BIT_EXT;
+	info.bindingCount = xx layout_binding.count;
+	info.pBindings = layout_binding.data;
+	
+	layout: VkDescriptorSetLayout ;
+	vkCreateDescriptorSetLayout(device, *info, null, *layout);
+
+#if false{
+	descriptor_buffer_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
+	device_properties: VkPhysicalDeviceProperties2;
+	device_properties.pNext = *descriptor_buffer_props;
+	vkGetPhysicalDeviceProperties2(physical_device, *device_properties);
+
+
+	descriptor_set_size: VkDeviceSize;
+	get_instance_proc_add(instance, "vkGetDescriptorSetLayoutSizeEXT");
+	vkGetDescriptorSetLayoutSizeEXT(device, layout, *descriptor_set_size);
+	log("Size: %", );
+}
+	return layout;
+}
