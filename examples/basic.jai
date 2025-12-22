@@ -40,7 +40,7 @@ main :: (){
 	fragment_ir := gpu_generate_shader_ir("shader.spv", "f_main");
 	gpipeline := gpu_create_graphic_pipeline(vertex_ir, fragment_ir);
 	
-	texture_heap := gpu_malloc(65565, Texture_Descriptor);
+	texture_heap := gpu_malloc(1, Texture_Descriptor, tag = "Texture Heap");
 
 	upload_memory := gpu_malloc(image_size);
     memcpy(upload_memory, image_data, image_size);
@@ -53,8 +53,8 @@ main :: (){
 	
 	dst_texture := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .TRANSFER_SRC | .TRANSFER_DST});
 
-	gpu_create_texture_view_descriptor(dst_texture, *texture_heap[0]);
-	gpu_create_texture_view_descriptor(texture, *texture_heap[1]);
+	gpu_create_rw_texture_view_descriptor(dst_texture, texture_heap, 0);
+	gpu_create_texture_view_descriptor(texture, texture_heap, 0);
 	
 	upload_buffer := gpu_start_command_recording(*compute_queue);
 
@@ -84,7 +84,7 @@ main :: (){
 		//gpu_clear(command_buffer, *dst_texture, {255, 0, 0, 255});
 		
 		gpu_bind_pipeline(*command_buffer, pipeline);
-		gpu_bind_texture_heap(command_buffer, gpu_host_to_device_address(texture_heap));
+		gpu_bind_texture_heap(command_buffer, texture_heap);
 		gpu_dispatch(command_buffer, data.gpu, 1280 / 16, 720 / 16, 1);
 		gpu_blit_textures(command_buffer, *dst_texture, *swapchain.images[swapchain.current_image]);
 		gpu_present(command_buffer, *compute_queue);

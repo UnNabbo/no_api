@@ -97,8 +97,8 @@ gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 	compute_layout.pushConstantRangeCount = 1;
 	
 	texture_layout := create_texture_heap_descriptor_set_layout();
-	compute_layout.pSetLayouts = *texture_layout;
-	compute_layout.setLayoutCount = 1;
+	compute_layout.pSetLayouts = texture_layout.data;
+	compute_layout.setLayoutCount = 2;
 	
 	vk_assert(vkCreatePipelineLayout(device, *compute_layout, null, *pipeline.layout));
 
@@ -138,32 +138,58 @@ gpu_generate_shader_ir :: (path: string, $entry_point: string = "main") -> Shade
 #scope_file;
 
 
-create_texture_heap_descriptor_set_layout :: () -> VkDescriptorSetLayout{
-	layout_binding: [2]VkDescriptorSetLayoutBinding;
-    layout_binding[0].binding = 0;
-	layout_binding[0].descriptorType = .COMBINED_IMAGE_SAMPLER;
-	layout_binding[0].descriptorCount = 65565;
-	layout_binding[0].stageFlags = .ALL ;
-	layout_binding[0].pImmutableSamplers = null;
-	layout_binding[1].binding = 1;
-	layout_binding[1].descriptorType = .STORAGE_IMAGE;
-	layout_binding[1].descriptorCount = 65565;
-	layout_binding[1].stageFlags = .COMPUTE_BIT;
-	layout_binding[1].pImmutableSamplers = null;
+create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
+	layout: = array_new(2, VkDescriptorSetLayout);
 	
-	info: VkDescriptorSetLayoutCreateInfo;
-	info.flags = .DESCRIPTOR_BUFFER_BIT_EXT;
-	info.bindingCount = xx layout_binding.count;
-	info.pBindings = layout_binding.data;
+	{
+		layout_binding: VkDescriptorSetLayoutBinding;
+		layout_binding.binding = 0;
+		layout_binding.descriptorType = .COMBINED_IMAGE_SAMPLER;
+		layout_binding.descriptorCount = 65565;
+		layout_binding.stageFlags = .ALL ;
+		layout_binding.pImmutableSamplers = null;
 	
-	layout: VkDescriptorSetLayout ;
-	vkCreateDescriptorSetLayout(device, *info, null, *layout);
+		binding_flags: VkDescriptorBindingFlags = .VARIABLE_DESCRIPTOR_COUNT_BIT_EXT;
 
+		extended_info: VkDescriptorSetLayoutBindingFlagsCreateInfo  = .{bindingCount = 1, pBindingFlags = *binding_flags};
+
+		info: VkDescriptorSetLayoutCreateInfo;
+		info.flags = .DESCRIPTOR_BUFFER_BIT_EXT;
+		info.bindingCount = 1;
+		info.pBindings = *layout_binding;
+		info.pNext = *extended_info;
+	
+		vkCreateDescriptorSetLayout(device, *info, null, *layout[0]);
+	}
+		{
+		layout_binding: VkDescriptorSetLayoutBinding;
+		layout_binding.binding = 0;
+		layout_binding.descriptorType = .STORAGE_IMAGE;
+		layout_binding.descriptorCount = 65565;
+		layout_binding.stageFlags = .ALL ;
+		layout_binding.pImmutableSamplers = null;
+	
+		binding_flags: VkDescriptorBindingFlags = .VARIABLE_DESCRIPTOR_COUNT_BIT_EXT;
+
+		extended_info: VkDescriptorSetLayoutBindingFlagsCreateInfo  = .{bindingCount = 1, pBindingFlags = *binding_flags};
+
+		info: VkDescriptorSetLayoutCreateInfo;
+		info.flags = .DESCRIPTOR_BUFFER_BIT_EXT;
+		info.bindingCount = 1;
+		info.pBindings = *layout_binding;
+		info.pNext = *extended_info;
+	
+		vkCreateDescriptorSetLayout(device, *info, null, *layout[1]);
+	}
+	
+	
+
+	
+#if false{
 	descriptor_buffer_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
 	device_properties: VkPhysicalDeviceProperties2;
 	device_properties.pNext = *descriptor_buffer_props;
 	vkGetPhysicalDeviceProperties2(physical_device, *device_properties);
-
 
 	descriptor_set_size: VkDeviceSize;
 	get_instance_proc_add(instance, "vkGetDescriptorSetLayoutSizeEXT");
@@ -174,5 +200,6 @@ create_texture_heap_descriptor_set_layout :: () -> VkDescriptorSetLayout{
 	binding_offset: u64;
 	vkGetDescriptorSetLayoutBindingOffsetEXT(device, layout, 1, *binding_offset);
 	log("%", binding_offset);
+}
 	return layout;
 }

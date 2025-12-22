@@ -250,6 +250,9 @@ create_device :: (physical_device: *Physical_Device, queues: ..Queue_Request_Ent
 	features12.pNext = *features13;
 	features12.bufferDeviceAddress = 1;
 	features12.descriptorIndexing = 1;
+	features12.shaderSampledImageArrayNonUniformIndexing  = 1;
+	features12.descriptorBindingPartiallyBound  = 1;
+	features12.runtimeDescriptorArray   = 1;
 
 	features11: VkPhysicalDeviceVulkan11Features;
 	features11.pNext = *features12;
@@ -263,7 +266,7 @@ create_device :: (physical_device: *Physical_Device, queues: ..Queue_Request_Ent
 	device_create_info.pNext = *device_features;
 
 	device_extensions: [] *u8 = .[
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
 	];
 	
 	device_create_info.ppEnabledExtensionNames = device_extensions.data;

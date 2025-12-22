@@ -4,7 +4,7 @@ Memory_Kind :: enum {
 	READBACK;
 };
 
-Texture_Descriptor :: u32; // Actual size is u64 as it is split in 2 handles, one for the sampler_image and the other for the raw image for compute work.
+Texture_Descriptor :: [2]u64; // Actual size is u64 as it is split in 2 handles, one for the sampler_image and the other for the raw image for compute work.
 
 
 
@@ -261,49 +261,52 @@ gpu_texture_alligment :: () {
 
 
 }
-gpu_create_texture_view_descriptor :: (texture: Texture, destination: *void){
-	allocation := table_find_pointer(*device.allocator.table, destination);
+gpu_create_texture_view_descriptor :: (texture: Texture, ptr: *Texture_Descriptor, index: s32){
+	allocation := table_find_pointer(*device.allocator.table, ptr);
+	destination: * void = cast(*Texture_Descriptor, ptr) + index;
+	assert(allocation != null, "could not find a valid allocation");
 	get_instance_proc_add(instance, "vkGetDescriptorEXT");
 
-	{
-		get_info: VkDescriptorGetInfoEXT;
-		get_info.type = .COMBINED_IMAGE_SAMPLER;
+	get_info: VkDescriptorGetInfoEXT;
+	get_info.type = .COMBINED_IMAGE_SAMPLER;
 
-		sampler: VkSampler;
-		sampler_info: VkSamplerCreateInfo ;
-		sampler_info.magFilter = .NEAREST;
-		sampler_info.minFilter = .NEAREST;
-		vkCreateSampler(device, *sampler_info, null, *sampler);
+	sampler: VkSampler;
+	sampler_info: VkSamplerCreateInfo ;
+	sampler_info.magFilter = .NEAREST;
+	sampler_info.minFilter = .NEAREST;
+	vkCreateSampler(device, *sampler_info, null, *sampler);
 	
 	
-		image_info: VkDescriptorImageInfo;
-		image_info.imageView = texture.view;
-		image_info.imageLayout = xx texture.layout;
-		image_info.sampler = sampler;
-		get_info.data = .{pCombinedImageSampler =  *image_info};
+	image_info: VkDescriptorImageInfo;
+	image_info.imageView = texture.view;
+	image_info.imageLayout = xx texture.layout;
+	image_info.sampler = sampler;
+	get_info.data = .{pCombinedImageSampler =  *image_info};
 
-		vkGetDescriptorEXT(device, *get_info, 4, destination);
+	vkGetDescriptorEXT(device, *get_info, 4, destination);
 
-	}
-	{
-		get_info: VkDescriptorGetInfoEXT;
-		get_info.type = .STORAGE_IMAGE;
 	
-		image_info: VkDescriptorImageInfo;
-		image_info.imageView = texture.view;
-		image_info.imageLayout = xx texture.layout;
-		get_info.data = .{pStorageImage =  *image_info};
-
-		log("PTR: %", destination);
-		vkGetDescriptorEXT(device, *get_info, 4, cast(*u8, destination) + 262260);
-
-	}
 	
 }
 
+gpu_create_rw_texture_view_descriptor :: (texture: Texture, destination: *Texture_Descriptor, index: s32){
+	allocation := table_find_pointer(*device.allocator.table, destination);
+	get_instance_proc_add(instance, "vkGetDescriptorEXT");
 
-gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT) -> *void {
+	get_info: VkDescriptorGetInfoEXT;
+	get_info.type = .STORAGE_IMAGE;
+	
+	image_info: VkDescriptorImageInfo;
+	image_info.imageView = texture.view;
+	image_info.imageLayout = xx texture.layout;
+	get_info.data = .{pStorageImage =  *image_info};
 
+	log("PTR: %", destination);
+	vkGetDescriptorEXT(device, *get_info, 4, cast(*u8, destination) + allocation.size / 2);
+}
+
+
+gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT, tag : string = "Untagged") -> *void {
 	alloc_info: VmaAllocationCreateInfo ;
 	alloc_info.usage = ifx kind != .GPU then .AUTO else .GPU_ONLY;
 	alloc_info.flags = ifx kind != .GPU then .MAPPED_BIT | ifx kind == .DEFAULT then .HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -316,16 +319,16 @@ gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT) -> 
 	vk_assert(vmaCreateBuffer(device.allocator, *buffer_info, *alloc_info, *allocation.buffer, *allocation.handle, *allocation.info));
 
 	ptr : * void = ifx kind != .GPU then allocation.info.pMappedData else xx allocation.handle;
-	log("%", ptr);
+	log("Allocated bytes % with tag % at address %", size, tag, ptr);
 	table_add(*device.allocator.table, ptr, allocation);
 	return ptr;
 }
 
-gpu_malloc :: (count: s64, $type: Type, kind: Memory_Kind = .DEFAULT) -> *type{
+gpu_malloc :: (count: s64, $type: Type, kind: Memory_Kind = .DEFAULT, tag : string = "Untagged") -> *type{
 	#if type == Texture_Descriptor {
-		return gpu_malloc(xx align_to(xx (count * size_of(u64)), 64), align_of(u64), kind);
+		return gpu_malloc(xx align_to(xx (count * size_of(u64)), 128), align_of(u64), kind, tag);
 	}else{
-		return gpu_malloc(count * size_of(type), align_of(type), kind);
+		return gpu_malloc(count * size_of(type), align_of(type), kind, tag);
 	}
 }
 

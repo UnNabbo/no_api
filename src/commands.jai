@@ -128,18 +128,22 @@ gpu_blit_textures :: (buffer: Command_Buffer, source: *Texture, destination: *Te
 	if destination_layout != .UNDEFINED then transition_image_layout(buffer, destination, destination_layout);
 }
 
-gpu_bind_texture_heap :: (buffer: Command_Buffer, ptr: *void){	
-	descriptor_buffer_binding_info: VkDescriptorBufferBindingInfoEXT;
-	descriptor_buffer_binding_info.usage   = .SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
-	descriptor_buffer_binding_info.address = xx ptr;
+gpu_bind_texture_heap :: (buffer: Command_Buffer, ptr: *void){
+	allocation := table_find_pointer(*device.allocator.table, ptr);
+	device_adress_info: VkBufferDeviceAddressInfo;
+	device_adress_info.buffer = allocation.buffer;
+	device_address := vkGetBufferDeviceAddress(device, *device_adress_info);
+	
+	descriptor_buffer_binding_info: [1]VkDescriptorBufferBindingInfoEXT;
+	descriptor_buffer_binding_info[0].usage   = .SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
+	descriptor_buffer_binding_info[0].address = device_address;
 	get_instance_proc_add(instance, "vkCmdBindDescriptorBuffersEXT");
-	vkCmdBindDescriptorBuffersEXT(buffer, 1, *descriptor_buffer_binding_info);
+	vkCmdBindDescriptorBuffersEXT(buffer, descriptor_buffer_binding_info.count, descriptor_buffer_binding_info.data);
 
 
 	get_instance_proc_add(instance, "vkCmdSetDescriptorBufferOffsetsEXT");
-	index: u32 = 0;
-	offset: u64 = 0; //I have no clue what this offset represent
-	vkCmdSetDescriptorBufferOffsetsEXT(buffer, xx buffer.current_pipeline.usage, buffer.current_pipeline.layout, 0, 1, *index, *offset);
+	index: [2]u32 = .[0, 0]; offset: [2]u64 = .[0, xx (allocation.size / 2)]; 
+	vkCmdSetDescriptorBufferOffsetsEXT(buffer, xx buffer.current_pipeline.usage, buffer.current_pipeline.layout, 0, 2, index.data, offset.data);
 }
 
 gpu_present :: (buffer: Command_Buffer, queue: *Queue){
