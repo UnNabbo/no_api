@@ -135,6 +135,7 @@ gpu_bind_texture_heap :: (buffer: Command_Buffer, ptr: *void){
 	get_instance_proc_add(instance, "vkCmdBindDescriptorBuffersEXT");
 	vkCmdBindDescriptorBuffersEXT(buffer, 1, *descriptor_buffer_binding_info);
 
+
 	get_instance_proc_add(instance, "vkCmdSetDescriptorBufferOffsetsEXT");
 	index: u32 = 0;
 	offset: u64 = 0; //I have no clue what this offset represent

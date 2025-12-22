@@ -74,6 +74,10 @@ align_of :: ($T: Type) -> s64 #expand {
     };
 }
 
+align_to :: (value: u64, alignment: u64) -> u64{
+  return (value + alignment - 1) & ~(alignment - 1);
+}
+
 NULL_HANDLE :: VK_NULL_HANDLE;
 
 f32 :: float32;

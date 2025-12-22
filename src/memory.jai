@@ -4,7 +4,7 @@ Memory_Kind :: enum {
 	READBACK;
 };
 
-Texture_Descriptor :: [1]u64;
+Texture_Descriptor :: u32; // Actual size is u64 as it is split in 2 handles, one for the sampler_image and the other for the raw image for compute work.
 
 
 
@@ -38,6 +38,7 @@ Texture :: struct{
 	
 	Format :: enum u32 {
 		UNDEFINED                                      :: 0;
+		NONE :: UNDEFINED;
 		R4G4_UNORM_PACK8                               :: 1;
 		R4G4B4A4_UNORM_PACK16                          :: 2;
 		B4G4R4A4_UNORM_PACK16                          :: 3;
@@ -261,28 +262,48 @@ gpu_texture_alligment :: () {
 
 }
 gpu_create_texture_view_descriptor :: (texture: Texture, destination: *void){
-	get_info: VkDescriptorGetInfoEXT;
-    get_info.type = .COMBINED_IMAGE_SAMPLER;
-
-	sampler: VkSampler;
-	sampler_info: VkSamplerCreateInfo ;
-	sampler_info.magFilter = .NEAREST;
-	sampler_info.minFilter = .NEAREST;
-	vkCreateSampler(device, *sampler_info, null, *sampler);
-	
-	
-	image_info: VkDescriptorImageInfo;
-	image_info.imageView = texture.view;
-	image_info.imageLayout = xx texture.layout;
-	image_info.sampler = sampler;
-    get_info.data = .{pCombinedImageSampler =  *image_info};
-
+	allocation := table_find_pointer(*device.allocator.table, destination);
 	get_instance_proc_add(instance, "vkGetDescriptorEXT");
-    vkGetDescriptorEXT(device, *get_info, 4, destination);
+
+	{
+		get_info: VkDescriptorGetInfoEXT;
+		get_info.type = .COMBINED_IMAGE_SAMPLER;
+
+		sampler: VkSampler;
+		sampler_info: VkSamplerCreateInfo ;
+		sampler_info.magFilter = .NEAREST;
+		sampler_info.minFilter = .NEAREST;
+		vkCreateSampler(device, *sampler_info, null, *sampler);
+	
+	
+		image_info: VkDescriptorImageInfo;
+		image_info.imageView = texture.view;
+		image_info.imageLayout = xx texture.layout;
+		image_info.sampler = sampler;
+		get_info.data = .{pCombinedImageSampler =  *image_info};
+
+		vkGetDescriptorEXT(device, *get_info, 4, destination);
+
+	}
+	{
+		get_info: VkDescriptorGetInfoEXT;
+		get_info.type = .STORAGE_IMAGE;
+	
+		image_info: VkDescriptorImageInfo;
+		image_info.imageView = texture.view;
+		image_info.imageLayout = xx texture.layout;
+		get_info.data = .{pStorageImage =  *image_info};
+
+		log("PTR: %", destination);
+		vkGetDescriptorEXT(device, *get_info, 4, cast(*u8, destination) + 262260);
+
+	}
+	
 }
 
 
 gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT) -> *void {
+
 	alloc_info: VmaAllocationCreateInfo ;
 	alloc_info.usage = ifx kind != .GPU then .AUTO else .GPU_ONLY;
 	alloc_info.flags = ifx kind != .GPU then .MAPPED_BIT | ifx kind == .DEFAULT then .HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -301,7 +322,11 @@ gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT) -> 
 }
 
 gpu_malloc :: (count: s64, $type: Type, kind: Memory_Kind = .DEFAULT) -> *type{
-	return gpu_malloc(count * size_of(type), align_of(type), kind);
+	#if type == Texture_Descriptor {
+		return gpu_malloc(xx align_to(xx (count * size_of(u64)), 64), align_of(u64), kind);
+	}else{
+		return gpu_malloc(count * size_of(type), align_of(type), kind);
+	}
 }
 
 gpu_free :: (ptr: *void, loc := #caller_location){

@@ -1,6 +1,6 @@
 Pipeline :: struct{
 	Kind :: enum {
-		GRAPHICS               :: 0;
+		GRAPHIC                :: 0;
 		COMPUTE                :: 1;
 		RAY_TRACING            :: 1000165000; 
 	}
@@ -11,9 +11,78 @@ Pipeline :: struct{
 	usage: Kind;
 }
 
+Blending:: struct {
+	Op :: enum {
+		ADD;
+		SUBTRACT;
+		REV_SUBTRACT;
+		MIN;
+		MAX;
+	}
+	
+	Factor :: enum  {
+		ZERO;
+		ONE;
+		SRC_COLOR;
+		DST_COLOR;
+		SRC_ALPHA;
+	}
+
+    color_op: Op = .ADD;
+    srcColorFactor: Factor = .ONE;
+    dstColorFactor: Factor = .ZERO;
+    alpha_op: Op = .ADD;
+    src_alpha_factor: Factor = .ONE;
+    dst_alpha_factor: Factor = .ZERO;
+    color_write_mask: u8 = 0xf;
+};
+
+Color_Target :: struct {
+    format: Texture.Format = .NONE;
+    write_mask: u8 = 0xf;
+};
+
+Rasterizer :: struct
+{
+	Topology :: enum{
+		NONE                          :: -1;
+		POINT_LIST                    ::  0;
+		LINE_LIST                     ::  1;
+		LINE_STRIP                    ::  2;
+		TRIANGLE_LIST                 ::  3;
+		TRIANGLE_STRIP                ::  4;
+		TRIANGLE_FAN                  ::  5;
+		LINE_LIST_WITH_ADJACENCY      ::  6;
+		LINE_STRIP_WITH_ADJACENCY     ::  7;
+		TRIANGLE_LIST_WITH_ADJACENCY  ::  8;
+		TRIANGLE_STRIP_WITH_ADJACENCY ::  9;
+		PATCH_LIST                    :: 10;
+	}
+
+	Cull :: enum{
+		NONE              :: -1;
+		COUNTER_CLOCKWISE ::  0;
+		CLOCKWISE         ::  1;
+	} 
+	
+    topology: Topology = .TRIANGLE_LIST;
+    cull: Cull = .NONE;
+    alpha_to_coverage: bool = false;
+    dual_source_blending: = false;
+    sample_count: u8 = 1;
+    depth_format: Texture.Format = .NONE;
+    stencil_format: Texture.Format = .NONE;
+    blend_state: *Blending = null; // optional embedded blend state
+    color_targets: [] Color_Target;
+};
+
 //VkDeviceAddress 
 
-
+gpu_create_graphic_pipeline :: (vertex: Shader_IR, fragment: Shader_IR, rasterizer: Rasterizer = .{}) -> Pipeline{
+	pipeline: Pipeline;
+	pipeline.usage = .GRAPHIC;
+	return pipeline;
+}
 gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 	pipeline: Pipeline;
 	pipeline.usage = .COMPUTE;
@@ -70,13 +139,18 @@ gpu_generate_shader_ir :: (path: string, $entry_point: string = "main") -> Shade
 
 
 create_texture_heap_descriptor_set_layout :: () -> VkDescriptorSetLayout{
-	layout_binding: [1]VkDescriptorSetLayoutBinding;
+	layout_binding: [2]VkDescriptorSetLayoutBinding;
     layout_binding[0].binding = 0;
 	layout_binding[0].descriptorType = .COMBINED_IMAGE_SAMPLER;
 	layout_binding[0].descriptorCount = 65565;
-	layout_binding[0].stageFlags = .ALL;
+	layout_binding[0].stageFlags = .ALL ;
 	layout_binding[0].pImmutableSamplers = null;
-
+	layout_binding[1].binding = 1;
+	layout_binding[1].descriptorType = .STORAGE_IMAGE;
+	layout_binding[1].descriptorCount = 65565;
+	layout_binding[1].stageFlags = .COMPUTE_BIT;
+	layout_binding[1].pImmutableSamplers = null;
+	
 	info: VkDescriptorSetLayoutCreateInfo;
 	info.flags = .DESCRIPTOR_BUFFER_BIT_EXT;
 	info.bindingCount = xx layout_binding.count;
@@ -85,7 +159,6 @@ create_texture_heap_descriptor_set_layout :: () -> VkDescriptorSetLayout{
 	layout: VkDescriptorSetLayout ;
 	vkCreateDescriptorSetLayout(device, *info, null, *layout);
 
-#if false{
 	descriptor_buffer_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
 	device_properties: VkPhysicalDeviceProperties2;
 	device_properties.pNext = *descriptor_buffer_props;
@@ -95,7 +168,11 @@ create_texture_heap_descriptor_set_layout :: () -> VkDescriptorSetLayout{
 	descriptor_set_size: VkDeviceSize;
 	get_instance_proc_add(instance, "vkGetDescriptorSetLayoutSizeEXT");
 	vkGetDescriptorSetLayoutSizeEXT(device, layout, *descriptor_set_size);
-	log("Size: %", );
-}
+	log("Size: % vs %", descriptor_set_size, align_to(xx (size_of(u64) * 65565), 64));
+
+	get_instance_proc_add(instance, "vkGetDescriptorSetLayoutBindingOffsetEXT");
+	binding_offset: u64;
+	vkGetDescriptorSetLayoutBindingOffsetEXT(device, layout, 1, *binding_offset);
+	log("%", binding_offset);
 	return layout;
 }
