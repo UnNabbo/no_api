@@ -20,12 +20,12 @@ main :: (){
 	window := create_window(1280, 720, "Window Creation");
 	quit := false;
 
-	gpu_init({.GENERAL, 1});
+	gpu_init(1, {.GENERAL, 1});
 	gpu_create_swapchain(window, 1280, 720, .FIFO);
 	queue := gpu_create_queue(.GENERAL);
 	
-	vertex_ir := gpu_generate_shader_ir("shader.spv", "v_main");
-	fragment_ir := gpu_generate_shader_ir("shader.spv", "f_main");
+	vertex_ir := gpu_generate_shader_ir("res/shader.spv", "v_main");
+	fragment_ir := gpu_generate_shader_ir("res/shader.spv", "f_main");
 	rasterizer_descriptor: Rasterizer_Descriptor = .{
 		color_targets = .[
 			.{format = .R8G8B8A8_UNORM}

@@ -28,22 +28,22 @@ main :: (){
 
     image_width, image_height, channels: s32;
     //stbi_set_flip_vertically_on_load(1);
-    image_data := stbi_load("image.png", *image_width, *image_height, *channels, 0);
+    image_data := stbi_load("res/image.png", *image_width, *image_height, *channels, 0);
     image_size := image_width * image_height * channels;
     defer stbi_image_free(image_data);
 	log("Loaded image of size: %, %", image_size, channels);
 	//GPU API INITIALIZATION
 	
-	gpu_init({.GENERAL, 1});
+	gpu_init(1, 1, {.GENERAL, 1});
 	//gpu_create_swapchain(window, 1280, 720, .MAILBOX);
 	gpu_create_swapchain(window, 1280, 720, .FIFO);
 	compute_queue := gpu_create_queue(.GENERAL);
 
-	compute_ir := gpu_generate_shader_ir("compute.spv");
+	compute_ir := gpu_generate_shader_ir("res/compute.spv");
 	pipeline := gpu_create_compute_pipeline(compute_ir);
 
-	vertex_ir := gpu_generate_shader_ir("shader.spv", "v_main");
-	fragment_ir := gpu_generate_shader_ir("shader.spv", "f_main");
+	vertex_ir := gpu_generate_shader_ir("res/shader.spv", "v_main");
+	fragment_ir := gpu_generate_shader_ir("res/shader.spv", "f_main");
 	rasterizer_descriptor: Rasterizer_Descriptor = .{
 		color_targets = .[
 			.{format = .R8G8B8A8_UNORM}
@@ -64,8 +64,8 @@ main :: (){
 	compute := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .TRANSFER_SRC | .TRANSFER_DST });
 	backbuffer := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .COLOR_ATTACHMENT | .TRANSFER_SRC | .TRANSFER_DST });
 	
-	texture_heap :=  gpu_malloc(8, Texture_Descriptor, tag = "TH");
-	rw_texture_heap := gpu_malloc(8, RWTexture_Descriptor, tag = "RWTH");
+	texture_heap := gpu_create_texture_heap();
+	rw_texture_heap :=  gpu_create_rw_texture_heap();
 	
 	gpu_create_rw_texture_view_descriptor(backbuffer, rw_texture_heap, 0);
 	gpu_create_texture_view_descriptor(texture, texture_heap, 0);

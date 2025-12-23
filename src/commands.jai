@@ -155,7 +155,7 @@ gpu_dispatch :: (buffer: Command_Buffer, ptr: *void, arguments: *void) {
 	}
 	
 	allocation := table_find_pointer(*device.allocator.table, arguments);
-	vkCmdDispatchIndirect(buffer, allocation, 0);
+	vkCmdDispatchIndirect(buffer, allocation.buffer, 0);
 }
 
 gpu_bind_pipeline :: (buffer: *Command_Buffer, pipeline: Pipeline){

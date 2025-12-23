@@ -298,7 +298,7 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 
 		info: VkDescriptorSetLayoutCreateInfo;
 		info.flags = .DESCRIPTOR_BUFFER_BIT_EXT;
-		info.bindingCount = 1;
+		info.bindingCount = xx texture_heap_size;
 		info.pBindings = *layout_binding;
 		info.pNext = *extended_info;
 	
@@ -318,7 +318,7 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 
 		info: VkDescriptorSetLayoutCreateInfo;
 		info.flags = .DESCRIPTOR_BUFFER_BIT_EXT;
-		info.bindingCount = 1;
+		info.bindingCount = xx rwtexture_heap_size;
 		info.pBindings = *layout_binding;
 		info.pNext = *extended_info;
 	
@@ -326,36 +326,37 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 	}
 	
 	
+	#if false{
+		get_instance_proc_add(instance, "vkGetDescriptorSetLayoutSizeEXT");
+		get_instance_proc_add(instance, "vkGetDescriptorSetLayoutBindingOffsetEXT");
+		{
+			descriptor_buffer_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
+			device_properties: VkPhysicalDeviceProperties2;
+			device_properties.pNext = *descriptor_buffer_props;
+			vkGetPhysicalDeviceProperties2(physical_device, *device_properties);
 
-	get_instance_proc_add(instance, "vkGetDescriptorSetLayoutSizeEXT");
-	get_instance_proc_add(instance, "vkGetDescriptorSetLayoutBindingOffsetEXT");
-{
-	descriptor_buffer_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
-	device_properties: VkPhysicalDeviceProperties2;
-	device_properties.pNext = *descriptor_buffer_props;
-	vkGetPhysicalDeviceProperties2(physical_device, *device_properties);
+			descriptor_set_size: VkDeviceSize;
+			vkGetDescriptorSetLayoutSizeEXT(device, layout[0], *descriptor_set_size);
+			print("0: Size: % vs % - offset: ", descriptor_set_size, align_to(xx (physical_device.proprieties.combinedImageSamplerDescriptorSize * 1), physical_device.proprieties.descriptorBufferOffsetAlignment));
 
-	descriptor_set_size: VkDeviceSize;
-	vkGetDescriptorSetLayoutSizeEXT(device, layout[0], *descriptor_set_size);
-	print("0: Size: % vs % - offset: ", descriptor_set_size, align_to(xx (physical_device.proprieties.combinedImageSamplerDescriptorSize * 1), physical_device.proprieties.descriptorBufferOffsetAlignment));
+			binding_offset: u64;
+			vkGetDescriptorSetLayoutBindingOffsetEXT(device, layout[0], 0, *binding_offset);
+			log("%", align_to(binding_offset, physical_device.proprieties.descriptorBufferOffsetAlignment));
+		}	
+		{
+			descriptor_buffer_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
+			device_properties: VkPhysicalDeviceProperties2;
+			device_properties.pNext = *descriptor_buffer_props;
+			vkGetPhysicalDeviceProperties2(physical_device, *device_properties);
 
-	binding_offset: u64;
-	vkGetDescriptorSetLayoutBindingOffsetEXT(device, layout[0], 0, *binding_offset);
-	log("%", align_to(binding_offset, physical_device.proprieties.descriptorBufferOffsetAlignment));
-}	
-{
-	descriptor_buffer_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
-	device_properties: VkPhysicalDeviceProperties2;
-	device_properties.pNext = *descriptor_buffer_props;
-	vkGetPhysicalDeviceProperties2(physical_device, *device_properties);
+			descriptor_set_size: VkDeviceSize;
+			vkGetDescriptorSetLayoutSizeEXT(device, layout[1], *descriptor_set_size);
+			print("1: Size: % vs % - offset: ", descriptor_set_size, align_to(xx (physical_device.proprieties.storageImageDescriptorSize * 1), physical_device.proprieties.descriptorBufferOffsetAlignment));
 
-	descriptor_set_size: VkDeviceSize;
-	vkGetDescriptorSetLayoutSizeEXT(device, layout[1], *descriptor_set_size);
-	print("1: Size: % vs % - offset: ", descriptor_set_size, align_to(xx (physical_device.proprieties.storageImageDescriptorSize * 1), physical_device.proprieties.descriptorBufferOffsetAlignment));
-
-	binding_offset: u64;
-	vkGetDescriptorSetLayoutBindingOffsetEXT(device, layout[1], 0, *binding_offset);
-	log("%", binding_offset);
+			binding_offset: u64;
+			vkGetDescriptorSetLayoutBindingOffsetEXT(device, layout[1], 0, *binding_offset);
+			log("%", binding_offset);
+		}
 }
 	return layout;
 }
