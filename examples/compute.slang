@@ -1,4 +1,4 @@
-[[vk::push_constant]] uint* data;
+[[vk::push_constant]] float3* data;
 
 [[vk::binding(0, 0)]] Sampler2D textures[];
 [[vk::binding(0, 1)]] RWTexture2D targets[];

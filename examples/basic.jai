@@ -14,6 +14,14 @@ Data :: struct {
 	_: void #align 16;
 }
 
+Vertex :: struct {
+	pos: Vector3 ;
+	col: Vector3 ;
+	uvs: Vector2 ;
+}
+
+
+
 main :: (){
 	set_working_directory(#filepath);
 	
@@ -38,9 +46,13 @@ main :: (){
 
 	vertex_ir := gpu_generate_shader_ir("shader.spv", "v_main");
 	fragment_ir := gpu_generate_shader_ir("shader.spv", "f_main");
-	gpipeline := gpu_create_graphic_pipeline(vertex_ir, fragment_ir);
+	rasterizer_descriptor: Rasterizer_Descriptor = .{
+		color_targets = .[
+			.{format = .R8G8B8A8_UNORM}
+		]
+	};
+	gpipeline := gpu_create_graphic_pipeline(vertex_ir, fragment_ir, rasterizer_descriptor);
 	
-	texture_heap, rw_texture_heap := gpu_create_texture_heap(16);
 
 	upload_memory := gpu_malloc(image_size);
     memcpy(upload_memory, image_data, image_size);
@@ -50,11 +62,15 @@ main :: (){
 	info.height = xx image_height;
 	info.format = .R8G8B8A8_UNORM;
 	texture := gpu_create_texture(info);
-	
-	dst_texture := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .TRANSFER_SRC | .TRANSFER_DST});
 
-	gpu_create_rw_texture_view_descriptor(dst_texture, *rw_texture_heap[0]);
-	gpu_create_texture_view_descriptor(texture, *texture_heap[0]);
+	backbuffer := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .COLOR_ATTACHMENT | .TRANSFER_SRC | .TRANSFER_DST });
+	compute := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .TRANSFER_SRC | .TRANSFER_DST });
+	
+	texture_heap :=  gpu_malloc(8, Texture_Descriptor, tag = "TH");
+	rw_texture_heap := gpu_malloc(8, RWTexture_Descriptor, tag = "RWTH");
+	
+	gpu_create_rw_texture_view_descriptor(backbuffer, rw_texture_heap, 0);
+	gpu_create_texture_view_descriptor(texture, texture_heap, 0);
 	
 	upload_buffer := gpu_start_command_recording(*compute_queue);
 
@@ -64,13 +80,22 @@ main :: (){
 	gpu_barrier(upload_buffer, .TRANSFER, .ALL, .DESCRIPTORS);
 	gpu_end_command_recording(upload_buffer);
 	gpu_submit(*compute_queue, upload_buffer);
+
+
 	//RENDERING LOOP
 	
 	FRAMES_IN_FLIGHT :: 2;
 	frame_semaphore := gpu_create_semaphore();
 	frame: u64 = 1;
 	
-	data := alloc_and_map(size_of(u32));
+	vertex := alloc_and_map(3, Vertex);
+	vertex.cpu[0] = .{{-0.5, -0.5, 0}, {1, 1, 0}, {-1, -1}};
+	vertex.cpu[1] = .{{0.5, 0.5, 0}, {1, 0, 0},   {1, 1}};
+	vertex.cpu[2] = .{{-0.5, 0.5, 0}, {1, 0, 1},  {-1, 1}};
+	indices := alloc_and_map(3, u32);
+	indices.cpu[0] = 0;
+	indices.cpu[1] = 1;
+	indices.cpu[2] = 2;
     while !quit {
         update_window_events();
 		for get_window_resizes() {
@@ -83,10 +108,27 @@ main :: (){
 		
 		//gpu_clear(command_buffer, *dst_texture, {255, 0, 0, 255});
 		
+#if true{
 		gpu_bind_pipeline(*command_buffer, pipeline);
-		gpu_bind_texture_heap(command_buffer, texture_heap);
-		gpu_dispatch(command_buffer, data.gpu, 1280 / 16, 720 / 16, 1);
-		gpu_blit_textures(command_buffer, *dst_texture, *swapchain.images[swapchain.current_image]);
+		gpu_bind_texture_heap(command_buffer, texture_heap, rw_texture_heap);
+		gpu_dispatch(command_buffer, vertex.gpu, 1280 / 16, 720 / 16, 1);
+}
+
+		gpu_barrier(upload_buffer, .COMPUTE_SHADER, .VERTEX_SHADER, .DESCRIPTORS);
+		
+		render_pass: Render_Pass_Descriptor;
+		render_pass.color_targets = .[{*backbuffer, .LOAD, .STORE}];
+		gpu_begin_render_pass(command_buffer, render_pass);
+		gpu_bind_pipeline(*command_buffer, gpipeline);
+		gpu_bind_texture_heap(command_buffer, texture_heap, rw_texture_heap);
+
+		gpu_bind_viewport(command_buffer, 0, 0, 1280, 720);
+		gpu_bind_scissor(command_buffer, 1280, 720);
+		gpu_draw_indexed(command_buffer, vertex.gpu, null, indices, 3);
+		gpu_end_render_pass(command_buffer);
+
+		gpu_blit_textures(command_buffer, *backbuffer, *swapchain.images[swapchain.current_image]);
+		
 		gpu_present(command_buffer, *compute_queue);
 		gpu_end_command_recording(command_buffer);
 		
@@ -107,13 +149,20 @@ main :: (){
 	
 }
 
-Allocation :: struct {
-	#as cpu: *void;
-	gpu: *void;
+Allocation :: struct($type: Type) {
+	#as cpu: *type;
+	gpu: *type;
 }
-alloc_and_map :: (size: s64) -> Allocation {
-	al: Allocation;
+alloc_and_map :: (size: s64) -> Allocation(void) {
+	al: Allocation(void);
 	al.cpu = gpu_malloc(size);
+	al.gpu = gpu_host_to_device_address(al.cpu);
+	return al;
+}
+
+alloc_and_map :: (count: s64, $type: Type) -> Allocation(type) {
+	al: Allocation(type);
+	al.cpu = gpu_malloc(count, type);
 	al.gpu = gpu_host_to_device_address(al.cpu);
 	return al;
 }

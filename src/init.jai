@@ -1,5 +1,9 @@
 #scope_module;
 
+vkCmdBindDescriptorBuffersEXT : PFN_vkCmdBindDescriptorBuffersEXT;
+vkGetDescriptorEXT : PFN_vkGetDescriptorEXT;
+vkCmdSetDescriptorBufferOffsetsEXT : PFN_vkCmdSetDescriptorBufferOffsetsEXT;
+
 Device :: struct { 
 	#as handle: VkDevice;
 	physical_device: *Physical_Device;
@@ -27,6 +31,7 @@ Physical_Device :: struct {
 	#as handle : VkPhysicalDevice;
 	instance: *Instance;
 	available_queues: [] Queue_Family;
+	proprieties: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
 }
 
 Instance :: struct{
@@ -108,7 +113,9 @@ create_instance :: () -> Instance	 {
 	}
 	
 
-
+	vkCmdBindDescriptorBuffersEXT  = xx vkGetInstanceProcAddr(instance, "vkCmdBindDescriptorBuffersEXT");
+	vkGetDescriptorEXT  = xx vkGetInstanceProcAddr(instance, "vkGetDescriptorEXT");
+	vkCmdSetDescriptorBufferOffsetsEXT =  xx vkGetInstanceProcAddr(instance, "vkCmdSetDescriptorBufferOffsetsEXT");
 	return instance; 
 }
 
@@ -198,6 +205,12 @@ create_physical_device :: (instance: *Instance) -> Physical_Device{
 			array_free(families);
 		}
 	}
+
+	desc_buf_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
+	props2: VkPhysicalDeviceProperties2 = .{pNext = *device.proprieties};
+	
+	vkGetPhysicalDeviceProperties2(device, *props2);
+	
 	return device;
 }
 
@@ -215,13 +228,15 @@ create_device :: (physical_device: *Physical_Device, queues: ..Queue_Request_Ent
 	queue_create_infos: [..] VkDeviceQueueCreateInfo;
 	defer array_free(queue_create_infos);
 	for entry: queues {
+		log("Creating % of %", entry, physical_device.available_queues);
 		for * physical_device.available_queues {
-			if it.kind == entry.kind && it.used + 1 < it.count {
+			if it.kind == entry.kind && it.used + 1 <= it.count {
 				it.used += 1;
 				array_add(*device.created_queues, .{it.kind, it.index, entry.count, 0});
 				
 				queue_create_info: VkDeviceQueueCreateInfo;
 				queue_create_info.queueFamilyIndex = xx it.index;
+				log("% - % of %", it.kind, entry.count, it.count);
 				queue_create_info.queueCount = xx entry.count;
 				queue_create_info.pQueuePriorities = *queue_priority;
 				array_add(*queue_create_infos, queue_create_info);
@@ -266,12 +281,14 @@ create_device :: (physical_device: *Physical_Device, queues: ..Queue_Request_Ent
 	device_create_info.pNext = *device_features;
 
 	device_extensions: [] *u8 = .[
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
 	];
 	
 	device_create_info.ppEnabledExtensionNames = device_extensions.data;
 	device_create_info.enabledExtensionCount = xx device_extensions.count;
-	
+
+
+		
 	vk_assert(vkCreateDevice(physical_device.handle, *device_create_info, null, *device.handle));
 	return device;
 }
