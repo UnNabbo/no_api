@@ -130,9 +130,9 @@ plugin_names :: string.[];
 	}
 	
 	w1 := create_workspace("playground", run = true);
-	w2 := create_workspace("hello_triangle", run = true);
-	w3 := create_workspace("hello_compute", run = true);
-    
+	w2 := create_workspace("hello_triangle");
+	w3 := create_workspace("hello_compute");
+  
 	if compile_workspaces(w1, w2, w3) && run_all{
 		for to_run  {
 			process: Process;

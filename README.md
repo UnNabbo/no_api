@@ -1,11 +1,11 @@
-* TODO Api sections [5/9]
+* TODO Api sections [8/9]
 - [X] Modern GPU memory management
 - [X] Command and queues 
 - [X] Compute pipeline
 - [X] Root arguments
 - [X] Barriers and fences
-- [ ] Textures
-- [ ] Graphic pipeline
-- [ ] Render passes
+- [X] Textures
+- [X] Graphic pipeline
+- [X] Render passes
 - [ ] Mutable static Ccnstants
   - Impossibile without considerable overhead due to vulkan limitations on specialization constants, said that It could be implemented it in some hacky way tho.

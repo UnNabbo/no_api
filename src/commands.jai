@@ -111,7 +111,7 @@ gpu_end_render_pass :: (buffer: Command_Buffer) {
 	vkCmdEndRendering(buffer);
 }
 
-gpu_draw_indexed :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *void, indices: *void, index_count: s64) {
+gpu_draw_indexed :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *void, indices: *void, index_count: s64, instance_count: s64 = 1) {
 	if vertex_data{
 		vertex_address := cast(VkDeviceAddress, vertex_data);
 		vkCmdPushConstants(buffer, buffer.current_pipeline.layout, .VERTEX_BIT, 0, size_of(VkDeviceAddress), *vertex_address);
@@ -123,12 +123,21 @@ gpu_draw_indexed :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *vo
 
 	allocation := table_find_pointer(*device.allocator.table, indices);
 	vkCmdBindIndexBuffer(buffer, allocation.buffer, 0, .UINT32);
-	vkCmdDrawIndexed(buffer, xx index_count, 1, 0, 0, 0);
+	vkCmdDrawIndexed(buffer, xx index_count, xx instance_count, 0, 0, 0);
 }
 
-gpu_bind_pipeline :: (buffer: *Command_Buffer, pipeline: Pipeline){
-	buffer.current_pipeline = pipeline;
-	vkCmdBindPipeline(buffer, xx pipeline.usage, pipeline);
+gpu_draw_indexed_indirect :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *void, arguments: *void, draw_count: s64 = 1) {
+	if vertex_data{
+		vertex_address := cast(VkDeviceAddress, vertex_data);
+		vkCmdPushConstants(buffer, buffer.current_pipeline.layout, .VERTEX_BIT, 0, size_of(VkDeviceAddress), *vertex_address);
+	}
+	if pixel_data{
+		pixel_address := cast(VkDeviceAddress, pixel_data);
+		vkCmdPushConstants(buffer, buffer.current_pipeline.layout, .FRAGMENT_BIT, size_of(VkDeviceAddress), size_of(VkDeviceAddress), *pixel_address);
+	}
+
+	allocation := table_find_pointer(*device.allocator.table, arguments);
+	vkCmdDrawIndexedIndirect(buffer, allocation.buffer, 0, xx draw_count, size_of(VkDrawIndexedIndirectCommand));
 }
 
 gpu_dispatch :: (buffer: Command_Buffer, ptr: *void, x: u32, y: u32, z: u32) {
@@ -137,6 +146,21 @@ gpu_dispatch :: (buffer: Command_Buffer, ptr: *void, x: u32, y: u32, z: u32) {
 		vkCmdPushConstants(buffer, buffer.current_pipeline.layout, .COMPUTE_BIT, 0, size_of(VkDeviceAddress), *device_address);
 	}
 	vkCmdDispatch(buffer, x, y, z);
+}
+
+gpu_dispatch :: (buffer: Command_Buffer, ptr: *void, arguments: *void) {
+	if ptr{
+		device_address := cast(VkDeviceAddress, ptr);
+		vkCmdPushConstants(buffer, buffer.current_pipeline.layout, .COMPUTE_BIT, 0, size_of(VkDeviceAddress), *device_address);
+	}
+	
+	allocation := table_find_pointer(*device.allocator.table, arguments);
+	vkCmdDispatchIndirect(buffer, allocation, 0);
+}
+
+gpu_bind_pipeline :: (buffer: *Command_Buffer, pipeline: Pipeline){
+	buffer.current_pipeline = pipeline;
+	vkCmdBindPipeline(buffer, xx pipeline.usage, pipeline);
 }
 
 gpu_bind_viewport :: (buffer: Command_Buffer, x: f32, y: f32, width: f32, height: f32, near: f32 = 1, far: f32 = 1) {
