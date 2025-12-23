@@ -232,11 +232,11 @@ gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT, tag
 
 gpu_malloc :: (count: s64, $type: Type, kind: Memory_Kind = .DEFAULT, tag : string = "Untagged") -> *type{
 	#if type == Texture_Descriptor{
-		size : s64 = align_to(count * xx physical_device.proprieties.combinedImageSamplerDescriptorSize, xx physical_device.proprieties.descriptorBufferOffsetAlignment);
-		return gpu_malloc(size, cast(s64, physical_device.proprieties.descriptorBufferOffsetAlignment), kind, tag);
+		size : s64 = count * xx physical_device.proprieties.combinedImageSamplerDescriptorSize;
+		return gpu_malloc(size, physical_device.alignment, kind, tag);
 	}else #if  type == RWTexture_Descriptor{
-		size : s64 = align_to(count * xx physical_device.proprieties.storageImageDescriptorSize, xx physical_device.proprieties.descriptorBufferOffsetAlignment);
-		return gpu_malloc(size, cast(s64, physical_device.proprieties.descriptorBufferOffsetAlignment), kind, tag);
+		size : s64 = count * xx physical_device.proprieties.storageImageDescriptorSize;
+		return gpu_malloc(size, physical_device.alignment, kind, tag);
 	}else{
 		return gpu_malloc(count * size_of(type), align_of(type), kind, tag);
 	}

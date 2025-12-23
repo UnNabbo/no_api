@@ -32,6 +32,7 @@ Physical_Device :: struct {
 	instance: *Instance;
 	available_queues: [] Queue_Family;
 	proprieties: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
+	alignment: s64;
 }
 
 Instance :: struct{
@@ -206,11 +207,11 @@ create_physical_device :: (instance: *Instance) -> Physical_Device{
 		}
 	}
 
-	desc_buf_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
 	props2: VkPhysicalDeviceProperties2 = .{pNext = *device.proprieties};
-	
+
 	vkGetPhysicalDeviceProperties2(device, *props2);
-	
+	device.alignment = xx max(device.proprieties.descriptorBufferOffsetAlignment,/*xx ifx props2.properties.vendorID == 0x1002 then 256 else*/ 0);
+	log("Current buffer alignment %", device.alignment);
 	return device;
 }
 
@@ -281,7 +282,7 @@ create_device :: (physical_device: *Physical_Device, queues: ..Queue_Request_Ent
 	device_create_info.pNext = *device_features;
 
 	device_extensions: [] *u8 = .[
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
 	];
 	
 	device_create_info.ppEnabledExtensionNames = device_extensions.data;

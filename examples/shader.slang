@@ -9,7 +9,6 @@ struct Vertex {
 }
 	
 
-
 [[vk::push_constant]] Vertex* data;
 
 struct VOut {
@@ -31,7 +30,6 @@ VOut v_main(uint vertex_index : SV_VertexID) {
 
 [shader("fragment")] // Marks this as a compute shader
 float4 f_main(VOut input) : SV_Target {
-	let texture = textures[0];
-    let color = texture.Sample(input.uvs) * float4(input.col, 1);
+    let color = float4(input.col, 1);
 	return color;
 }

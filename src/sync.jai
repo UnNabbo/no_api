@@ -1,3 +1,4 @@
+
 Semaphore :: VkSemaphore;
 
 
@@ -86,13 +87,19 @@ Barrier :: VkEvent;
 gpu_create_barrier :: () -> Barrier{
 	barrier: Barrier;
 	info: VkEventCreateInfo;
+	
 	vk_assert(vkCreateEvent(device, *info, null, *barrier));
 	return barrier;
 }
 
+gpu_destroy_barrier :: (barrier: Barrier){
+	vkDestroyEvent(device, barrier, null);
+}
+
+
 gpu_signal_after :: (buffer: Command_Buffer, stage: Stage, barrier: *Barrier){
 	memory_barrier: VkMemoryBarrier2;
-    memory_barrier.dstAccessMask = xx VK_ACCESS_2_SHADER_READ_BIT;
+    memory_barrier.dstAccessMask = ifx stage == .HOST then VK_ACCESS_2_HOST_READ_BIT  else VK_ACCESS_2_SHADER_READ_BIT;
     memory_barrier.dstStageMask = xx stage;
 
 	info: VkDependencyInfo;
@@ -104,14 +111,14 @@ gpu_signal_after :: (buffer: Command_Buffer, stage: Stage, barrier: *Barrier){
 
 gpu_wait_before :: (buffer: Command_Buffer, stage: Stage, barrier: *Barrier) {
  	memory_barrier: VkMemoryBarrier2;
-	memory_barrier.srcAccessMask = xx VK_ACCESS_2_SHADER_WRITE_BIT;
+	memory_barrier.srcAccessMask = ifx stage == .HOST then VK_ACCESS_2_HOST_WRITE_BIT  else VK_ACCESS_2_SHADER_WRITE_BIT;
 	memory_barrier.srcStageMask  = xx stage;
 
 	info: VkDependencyInfo;
 	info.memoryBarrierCount = 1;
 	info.pMemoryBarriers = *memory_barrier;
 	vkCmdWaitEvents2(buffer, 1, barrier, *info);
-	vkResetEvent(device, barrier.*);
+	//vk_assert(vkResetEvent(device, barrier.*));
 }
 
 

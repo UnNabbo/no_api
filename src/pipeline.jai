@@ -288,7 +288,7 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 		layout_binding: VkDescriptorSetLayoutBinding;
 		layout_binding.binding = 0;
 		layout_binding.descriptorType = .COMBINED_IMAGE_SAMPLER;
-		layout_binding.descriptorCount = 2;
+		layout_binding.descriptorCount = 1;
 		layout_binding.stageFlags = .ALL ;
 		layout_binding.pImmutableSamplers = null;
 	
@@ -308,7 +308,7 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 		layout_binding: VkDescriptorSetLayoutBinding;
 		layout_binding.binding = 0;
 		layout_binding.descriptorType = .STORAGE_IMAGE;
-		layout_binding.descriptorCount = 2;
+		layout_binding.descriptorCount = 1;
 		layout_binding.stageFlags = .ALL ;
 		layout_binding.pImmutableSamplers = null;
 	

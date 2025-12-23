@@ -155,7 +155,7 @@ gpu_clear :: (buffer: Command_Buffer, image: *Texture,  color: Color4){
 	clear_range := create_subresource_range(xx VkImageAspectFlagBits.COLOR_BIT);
 	clear_value: VkClearColorValue = .{.[color.r / 255.0, color.g / 255.0, color.b / 255.0, color.a / 255.0]};
 	vkCmdClearColorImage(buffer, image, xx image.layout, *clear_value, 1, *clear_range);
-	if layout != .UNDEFINED then transition_image_layout(buffer, image, layout);
+	transition_image_layout(buffer, image, ifx layout == .UNDEFINED then .GENERAL else layout);
 }
 
 gpu_copy_to_texture :: (buffer: Command_Buffer, texture: *Texture, data: *void) {
@@ -225,11 +225,13 @@ gpu_bind_texture_heap :: (buffer: Command_Buffer, sampling_ptr: *void, rw_ptr: *
 	vkCmdSetDescriptorBufferOffsetsEXT(buffer, xx buffer.current_pipeline.usage, buffer.current_pipeline.layout,xx ifx sampling_ptr then 0 else 1, xx ifx sampling_ptr && rw_ptr then 2 else 1, index.data, offset.data);
 }
 
-gpu_present :: (buffer: Command_Buffer, queue: *Queue){
+
+gpu_present :: (buffer: Command_Buffer, queue: *Queue, image: *Texture){
 	queue.present = true;
 	swapchain.current_sync = xx ((swapchain.current_sync + 1) % (swapchain.semaphores.count ));
 	error := vkAcquireNextImageKHR(device, swapchain, U64_MAX, swapchain.semaphores[swapchain.current_sync], NULL_HANDLE, *swapchain.current_image);
 	if error == VkResult.ERROR_OUT_OF_DATE_KHR return;
+	gpu_blit_textures(buffer, image, *swapchain.images[swapchain.current_image]);
 	transition_image_layout(buffer, *swapchain.images[swapchain.current_image], .PRESENT_SRC);
 }
 
@@ -237,7 +239,7 @@ gpu_present :: (buffer: Command_Buffer, queue: *Queue){
 gpu_submit :: (queue: *Queue, semaphore: Semaphore, value: u64, buffers: ..Command_Buffer) {
 	if !buffers.count return;
 
-
+	
 	buffer_info := array_new(buffers.count, VkCommandBufferSubmitInfo);
 	for * buffer_info{
 		queue.alive_buffer -= 1;
@@ -353,9 +355,9 @@ transition_image_layout :: (command_buffer: Command_Buffer, image: *Texture, tar
 	
 	image_barrier: VkImageMemoryBarrier2;
     image_barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    image_barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+    image_barrier.srcAccessMask = ifx image.layout != .PRESENT_SRC then VK_ACCESS_2_TRANSFER_WRITE_BIT else VK_ACCESS_2_MEMORY_WRITE_BIT;
     image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    image_barrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT  | VK_ACCESS_2_MEMORY_READ_BIT;
+    image_barrier.dstAccessMask =  ifx image.layout != .PRESENT_SRC then VK_ACCESS_2_TRANSFER_WRITE_BIT else VK_ACCESS_2_MEMORY_WRITE_BIT;
     image_barrier.oldLayout = xx image.layout;
     image_barrier.newLayout = xx target_layout;
 	

@@ -1,4 +1,4 @@
-#import "no_api" ;
+#import "no_api"() ;
 
 #import "Window_Creation";
 #import "stb_image";
@@ -19,8 +19,6 @@ Vertex :: struct {
 	col: Vector3 ;
 	uvs: Vector2 ;
 }
-
-
 
 main :: (){
 	set_working_directory(#filepath);
@@ -63,8 +61,8 @@ main :: (){
 	info.format = .R8G8B8A8_UNORM;
 	texture := gpu_create_texture(info);
 
-	backbuffer := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .COLOR_ATTACHMENT | .TRANSFER_SRC | .TRANSFER_DST });
 	compute := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .TRANSFER_SRC | .TRANSFER_DST });
+	backbuffer := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .COLOR_ATTACHMENT | .TRANSFER_SRC | .TRANSFER_DST });
 	
 	texture_heap :=  gpu_malloc(8, Texture_Descriptor, tag = "TH");
 	rw_texture_heap := gpu_malloc(8, RWTexture_Descriptor, tag = "RWTH");
@@ -84,7 +82,7 @@ main :: (){
 
 	//RENDERING LOOP
 	
-	FRAMES_IN_FLIGHT :: 2;
+	FRAMES_IN_FLIGHT :: 1;
 	frame_semaphore := gpu_create_semaphore();
 	frame: u64 = 1;
 	
@@ -96,13 +94,17 @@ main :: (){
 	indices.cpu[0] = 0;
 	indices.cpu[1] = 1;
 	indices.cpu[2] = 2;
+
+
+
+
     while !quit {
         update_window_events();
 		for get_window_resizes() {
 			log("%", it);
 		}
 
-		if frame > FRAMES_IN_FLIGHT then gpu_wait_semaphore(frame_semaphore, frame - FRAMES_IN_FLIGHT);
+		if frame > FRAMES_IN_FLIGHT then gpu_wait_semaphore(frame_semaphore, frame );
 		
 		command_buffer := gpu_start_command_recording(*compute_queue);
 		
@@ -111,11 +113,11 @@ main :: (){
 #if true{
 		gpu_bind_pipeline(*command_buffer, pipeline);
 		gpu_bind_texture_heap(command_buffer, texture_heap, rw_texture_heap);
-		gpu_dispatch(command_buffer, vertex.gpu, 1280 / 16, 720 / 16, 1);
+		gpu_dispatch(command_buffer, null, 1280 / 16, 720 / 16, 1);
 }
 
-		gpu_barrier(upload_buffer, .COMPUTE_SHADER, .VERTEX_SHADER, .DESCRIPTORS);
-		
+		gpu_barrier(command_buffer, .COMPUTE_SHADER, .ALL_GRAPHICS, .DESCRIPTORS);
+ 
 		render_pass: Render_Pass_Descriptor;
 		render_pass.color_targets = .[{*backbuffer, .LOAD, .STORE}];
 		gpu_begin_render_pass(command_buffer, render_pass);
@@ -127,12 +129,18 @@ main :: (){
 		gpu_draw_indexed(command_buffer, vertex.gpu, null, indices, 3);
 		gpu_end_render_pass(command_buffer);
 
-		gpu_blit_textures(command_buffer, *backbuffer, *swapchain.images[swapchain.current_image]);
+#if false{
+		barrier := gpu_create_barrier();
+		defer gpu_destroy_barrier(barrier);
+		gpu_signal_after(command_buffer, .ALL, *barrier);
+		gpu_wait_before(command_buffer, .HOST, *barrier);
+}
 		
-		gpu_present(command_buffer, *compute_queue);
+	
+		gpu_present(command_buffer, *compute_queue, *backbuffer);
 		gpu_end_command_recording(command_buffer);
 		
-		gpu_submit(*compute_queue, frame_semaphore, frame, command_buffer);
+		gpu_submit(*compute_queue, frame_semaphore, frame + 1, command_buffer);
 		frame += 1;
 		
 		for events_this_frame {

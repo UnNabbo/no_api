@@ -1,7 +1,7 @@
-[[vk::push_constant]] float3* data;
-
 [[vk::binding(0, 0)]] Sampler2D textures[];
 [[vk::binding(0, 1)]] RWTexture2D targets[];
+
+[[vk::push_constant]] void* data;
 
 [shader("compute")] // Marks this as a compute shader
 [numthreads(16,16,1)]

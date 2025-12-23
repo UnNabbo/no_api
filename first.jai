@@ -129,9 +129,11 @@ plugin_names :: string.[];
 		}
 	}
 	
-	w1 := create_workspace("basic", run = true);
+	w1 := create_workspace("playground", run = true);
+	w2 := create_workspace("hello_triangle", run = true);
+	w3 := create_workspace("hello_compute", run = true);
     
-	if compile_workspaces(w1) && run_all{
+	if compile_workspaces(w1, w2, w3) && run_all{
 		for to_run  {
 			process: Process;
 			success := create_process(*process, "wt", "-d", #filepath, "cmd", "/k", it, "&", "exit", kill_process_if_parent_exits = false);
