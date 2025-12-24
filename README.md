@@ -1,3 +1,5 @@
+#No API
+A Vulkan implementation/interpretation of Sebastian Aaltonen's blog post: "No Graphics API" in the form of a RHI.
 * TODO Api sections [8/9]
 - [X] Modern GPU memory management
 - [X] Command and queues 
