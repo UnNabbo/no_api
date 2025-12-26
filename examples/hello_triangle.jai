@@ -58,7 +58,7 @@ main :: (){
 		gpu_clear(command_buffer, *backbuffer, {255, 0, 0, 255});
 
 		render_pass: Render_Pass_Descriptor;
-		render_pass.color_targets = .[{*backbuffer, .LOAD, .STORE}];
+		render_pass.color_targets = .[{*backbuffer, .LOAD, .STORE, 0}];
 		gpu_begin_render_pass(command_buffer, render_pass);
 		gpu_bind_pipeline(*command_buffer, *pipeline);
 

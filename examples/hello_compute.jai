@@ -28,7 +28,7 @@ main :: (){
 	pipeline := gpu_create_compute_pipeline(compute_ir);
 	backbuffer := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .COLOR_ATTACHMENT | .TRANSFER_SRC | .TRANSFER_DST });
 
-	rw_texture_heap := gpu_malloc(8, RWTexture_Descriptor, tag = "RWTH");
+	rw_texture_heap := gpu_malloc(8, RWTexture_Descriptor);
 	gpu_create_rw_texture_view_descriptor(backbuffer, rw_texture_heap, 0);
 	
 	FRAMES_IN_FLIGHT :: 1;

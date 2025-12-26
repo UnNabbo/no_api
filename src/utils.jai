@@ -1,3 +1,5 @@
+#scope_module;
+
 NULL_HANDLE :: VK_NULL_HANDLE;
 
 f32 :: float32;
@@ -80,7 +82,7 @@ clamp_lo :: inline (val: $T, min: T) -> T {
 	else return val;
 }
 
-vk_assert :: val => assert(val == .SUCCESS);
+vk_assert :: val => assert(val == .SUCCESS, "Failed with %", val);
 
 get_instance_proc_add :: (inst: VkInstance, entry: string) #expand {
 	#insert #run tprint("`% : PFN_% = xx vkGetInstanceProcAddr(inst, \"%\");", entry, entry, entry);
@@ -263,16 +265,16 @@ delete :: (using tree: *Interval_Table, node: *tree.Node, at_node: *tree.Node = 
 		}else if node.left && node.right {
 			node.height = max(node_height(node.left), node_height(node.right)) + 1;
 			balance := node_balance(node);
-			if balance > 1 && node_balance(root.left) >= 0 then rotate_right(root);
-			if balance < -1 && node_balance(root.right) <= 0 then rotate_left(root);
+			if balance > 1 && node_balance(root.left) >= 0 then rotate_right(tree, root);
+			if balance < -1 && node_balance(root.right) <= 0 then rotate_left(tree, root);
 			
 			if balance > 1 && node_balance(root.left) < 0 {
-				root.left =  rotate_left(root.left);
-				rotate_right(root);
+				root.left =  rotate_left(tree, root.left);
+				rotate_right(tree, root);
 			}
 			if balance < -1 && node_balance(root.right) > 0{
-				root.right = rotate_right(root.right);
-				rotate_left(root);
+				root.right = rotate_right(tree, root.right);
+				rotate_left(tree, root);
 			}
 		}
 		return true;

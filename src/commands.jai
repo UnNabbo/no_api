@@ -22,7 +22,7 @@ Attachment :: struct {
 	}
 	Store_Op :: enum {
 		STORE :: 0;
-
+		DONT_CARE :: 1;
 		NONE :: 1000301000;
 	}
 		
@@ -30,10 +30,7 @@ Attachment :: struct {
 	load_op: Load_Op  = .NONE;
 	store_op: Store_Op = .NONE;
 	
-	union {
-		clear_value: f32  = 0;
-		color: Vector4  = .{0, 0, 0 ,0};
-	}
+	clear_value: f32  = 0;
 }
 
 Render_Pass_Descriptor :: struct {
@@ -98,6 +95,10 @@ gpu_begin_render_pass :: (buffer: Command_Buffer, render_pass: Render_Pass_Descr
 		height = max(height, it.texture.extent.height);
 		attachments[it_index] = to_vk_attachment(it);
 	}
+
+	if render_pass.depth_target.texture{
+		if render_pass.depth_target.texture.layout == .UNDEFINED then transition_image_layout(buffer, render_pass.depth_target.texture, .DEPTH_ATTACHMENT_OPTIMAL);
+	}
 	
 	render_info.renderArea = VkRect2D.{ VkOffset2D.{ 0, 0 }, .{width, height} };
     render_info.colorAttachmentCount = xx render_pass.color_targets.count;
@@ -113,7 +114,7 @@ gpu_end_render_pass :: (buffer: Command_Buffer) {
 	vkCmdEndRendering(buffer);
 }
 
-gpu_draw_indexed :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *void, indices: *void, index_count: s64, instance_count: s64 = 1) {
+gpu_draw_indexed :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *void, indices: *$T, index_count: s64, instance_count: s64 = 1) {
 	if vertex_data{
 		vertex_address := cast(VkDeviceAddress, vertex_data);
 		vkCmdPushConstants(buffer, buffer.current_pipeline.layout, .VERTEX_BIT, 0, size_of(VkDeviceAddress), *vertex_address);
@@ -124,7 +125,7 @@ gpu_draw_indexed :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *vo
 	}
 
 	allocation := get_cpu_metadata(indices);
-	vkCmdBindIndexBuffer(buffer, allocation.buffer, 0, .UINT32);
+	vkCmdBindIndexBuffer(buffer, allocation.buffer, 0, ifx T == u32 then .UINT32 else .UINT16);
 	vkCmdDrawIndexed(buffer, xx index_count, xx instance_count, 0, 0, 0);
 }
 
@@ -259,6 +260,7 @@ gpu_set_blend_state :: (buffer: Command_Buffer, state: Blending_State)
 
 
 gpu_bind_texture_heap :: (buffer: Command_Buffer, sampling_ptr: *void, rw_ptr: *void = null){
+	if !sampling_ptr && !rw_ptr return;
 	descriptor_buffer_binding_info: [2]VkDescriptorBufferBindingInfoEXT;
 	descriptor_buffer_binding_info[0].usage   = .RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 	descriptor_buffer_binding_info[1].usage   = .RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
@@ -271,13 +273,14 @@ gpu_bind_texture_heap :: (buffer: Command_Buffer, sampling_ptr: *void, rw_ptr: *
 	vkCmdSetDescriptorBufferOffsetsEXT(buffer, xx buffer.current_pipeline.usage, buffer.current_pipeline.layout,xx ifx sampling_ptr then 0 else 1, xx ifx sampling_ptr && rw_ptr then 2 else 1, index.data, offset.data);
 }
 
-gpu_present :: (buffer: Command_Buffer, queue: *Queue, image: *Texture){
+gpu_present :: (buffer: Command_Buffer, queue: *Queue, image: *Texture) -> s32{
 	queue.present = true;
 	swapchain.current_sync = xx ((swapchain.current_sync + 1) % (swapchain.semaphores.count ));
 	error := vkAcquireNextImageKHR(device, swapchain, U64_MAX, swapchain.semaphores[swapchain.current_sync], NULL_HANDLE, *swapchain.current_image);
-	if error == VkResult.ERROR_OUT_OF_DATE_KHR return;
+	if error != VkResult.VK_SUCCESS return 1;
 	gpu_blit_textures(buffer, image, *swapchain.images[swapchain.current_image]);
 	transition_image_layout(buffer, *swapchain.images[swapchain.current_image], .PRESENT_SRC);
+	return 0;
 }
 
 	
@@ -381,6 +384,18 @@ gpu_submit :: (queue: *Queue, buffers: ..Command_Buffer) {
 	}
 }
 
+
+gpu_bind_viewport :: (buffer: Command_Buffer, x: f32, y: f32, width: f32, height: f32, near: f32 = 0, far: f32 = 1) {
+	view_port: VkViewport = .{x, y, width, height, near, far};
+	vkCmdSetViewport(buffer, 0, 1, *view_port);
+}
+
+gpu_bind_scissor :: (buffer: Command_Buffer, x: s32, y: s32, width: u32, height: u32) {
+	scissor: VkRect2D = .{{x, y}, {width, height}};
+	vkCmdSetScissor(buffer, 0, 1, *scissor);
+}
+
+
 #scope_file;
 
 create_subresource_range :: (mask: u64) -> VkImageSubresourceRange{
@@ -431,13 +446,3 @@ to_vk_attachment :: (using attachment: Attachment) -> VkRenderingAttachmentInfo 
 	return vk_attachment;
 }
 
-
-gpu_bind_viewport :: (buffer: Command_Buffer, x: f32, y: f32, width: f32, height: f32, near: f32 = 1, far: f32 = 1) {
-	view_port: VkViewport = .{x, y, width, height, near, far};
-	vkCmdSetViewport(buffer, 0, 1, *view_port);
-}
-
-gpu_bind_scissor :: (buffer: Command_Buffer, x: s32, y: s32, width: u32, height: u32) {
-	scissor: VkRect2D = .{{x, y}, {width, height}};
-	vkCmdSetScissor(buffer, 0, 1, *scissor);
-}

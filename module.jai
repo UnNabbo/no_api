@@ -1,7 +1,6 @@
 #module_parameters(RENDERING_DEBUG := true);
 
 #load "src/utils.jai";
-
 #load "src/init.jai";
 #load "src/sync.jai";
 #load "src/memory.jai";

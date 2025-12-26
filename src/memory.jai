@@ -160,6 +160,69 @@ Texture :: struct{
 		R64G64B64A64_UINT                              :: 119;
 		R64G64B64A64_SINT                              :: 120;
 		R64G64B64A64_SFLOAT                            :: 121;
+		B10G11R11_UFLOAT_PACK32 :: 122;
+		E5B9G9R9_UFLOAT_PACK32 :: 123;
+		D16_UNORM :: 124;
+		X8_D24_UNORM_PACK32 :: 125;
+		D32_SFLOAT :: 126;
+		S8_UINT :: 127;
+		D16_UNORM_S8_UINT :: 128;
+		D24_UNORM_S8_UINT :: 129;
+		D32_SFLOAT_S8_UINT :: 130;
+		BC1_RGB_UNORM_BLOCK :: 131;
+		BC1_RGB_SRGB_BLOCK :: 132;
+		BC1_RGBA_UNORM_BLOCK :: 133;
+		BC1_RGBA_SRGB_BLOCK :: 134;
+		BC2_UNORM_BLOCK :: 135;
+		BC2_SRGB_BLOCK :: 136;
+		BC3_UNORM_BLOCK :: 137;
+		BC3_SRGB_BLOCK :: 138;
+		BC4_UNORM_BLOCK :: 139;
+		BC4_SNORM_BLOCK :: 140;
+		BC5_UNORM_BLOCK :: 141;
+		BC5_SNORM_BLOCK :: 142;
+		BC6H_UFLOAT_BLOCK :: 143;
+		BC6H_SFLOAT_BLOCK :: 144;
+		BC7_UNORM_BLOCK :: 145;
+		BC7_SRGB_BLOCK :: 146;
+		ETC2_R8G8B8_UNORM_BLOCK :: 147;
+		ETC2_R8G8B8_SRGB_BLOCK :: 148;
+		ETC2_R8G8B8A1_UNORM_BLOCK :: 149;
+		ETC2_R8G8B8A1_SRGB_BLOCK :: 150;
+		ETC2_R8G8B8A8_UNORM_BLOCK :: 151;
+		ETC2_R8G8B8A8_SRGB_BLOCK :: 152;
+		EAC_R11_UNORM_BLOCK :: 153;
+		EAC_R11_SNORM_BLOCK :: 154;
+		EAC_R11G11_UNORM_BLOCK :: 155;
+		EAC_R11G11_SNORM_BLOCK :: 156;
+		ASTC_4x4_UNORM_BLOCK :: 157;
+		ASTC_4x4_SRGB_BLOCK :: 158;
+		ASTC_5x4_UNORM_BLOCK :: 159;
+		ASTC_5x4_SRGB_BLOCK :: 160;
+		ASTC_5x5_UNORM_BLOCK :: 161;
+		ASTC_5x5_SRGB_BLOCK :: 162;
+		ASTC_6x5_UNORM_BLOCK :: 163;
+		ASTC_6x5_SRGB_BLOCK :: 164;
+		ASTC_6x6_UNORM_BLOCK :: 165;
+		ASTC_6x6_SRGB_BLOCK :: 166;
+		ASTC_8x5_UNORM_BLOCK :: 167;
+		ASTC_8x5_SRGB_BLOCK :: 168;
+		ASTC_8x6_UNORM_BLOCK :: 169;
+		ASTC_8x6_SRGB_BLOCK :: 170;
+		ASTC_8x8_UNORM_BLOCK :: 171;
+		ASTC_8x8_SRGB_BLOCK :: 172;
+		ASTC_10x5_UNORM_BLOCK :: 173;
+		ASTC_10x5_SRGB_BLOCK :: 174;
+		ASTC_10x6_UNORM_BLOCK :: 175;
+		ASTC_10x6_SRGB_BLOCK :: 176;
+		ASTC_10x8_UNORM_BLOCK :: 177;
+		ASTC_10x8_SRGB_BLOCK :: 178;
+		ASTC_10x10_UNORM_BLOCK :: 179;
+		ASTC_10x10_SRGB_BLOCK :: 180;
+		ASTC_12x10_UNORM_BLOCK :: 181;
+		ASTC_12x10_SRGB_BLOCK :: 182;
+		ASTC_12x12_UNORM_BLOCK :: 183;
+		ASTC_12x12_SRGB_BLOCK :: 184;
 	}
 
 	Layout :: enum{
@@ -211,7 +274,7 @@ Texture_Info :: struct{
 	usage: Texture.Usage = .SAMPLED | .TRANSFER_DST | .TRANSFER_SRC;
 }
 
-gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT, tag : string = "Untagged") -> *void {
+gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT) -> *void {
 	alloc_info: VmaAllocationCreateInfo ;
 	alloc_info.usage = ifx kind != .GPU then .AUTO else .GPU_ONLY;
 	alloc_info.flags = ifx kind != .GPU then .MAPPED_BIT | ifx kind == .DEFAULT || kind == .DESCRIPTORS then .HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -225,7 +288,7 @@ gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT, tag
 
 	ptr : * void = ifx kind != .GPU then allocation.info.pMappedData else xx allocation.handle;
 	add(*device.allocator.cpu, xx ptr, cast(u64, ptr) + xx size, allocation);
-	print("Allocated bytes % with tag % at address % -", size, tag, ptr);
+	//log("Allocated bytes % with tag % at address %", size, tag, ptr);
 #if false{
 	gpu_add := cast(u64, gpu_host_to_device_address(ptr));
 	log("RANGE CPU: (% - %), GPU (% - %)", cast(u64, ptr), cast(u64, ptr) + xx size, gpu_add, gpu_add + xx size);
@@ -233,24 +296,25 @@ gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT, tag
 	return ptr;
 }
 
-gpu_malloc :: (count: s64, $type: Type, kind: Memory_Kind = .DEFAULT, tag : string = "Untagged") -> *type{
+gpu_malloc :: (count: s64, $type: Type, kind: Memory_Kind = .DEFAULT) -> *type{
 	#if type == Texture_Descriptor{
 		size : s64 = count * xx physical_device.proprieties.combinedImageSamplerDescriptorSize;
-		return gpu_malloc(size, physical_device.alignment, kind, tag);
+		return gpu_malloc(size, physical_device.alignment, kind);
 	}else #if  type == RWTexture_Descriptor{
 		size : s64 = count * xx physical_device.proprieties.storageImageDescriptorSize;
-		return gpu_malloc(size, physical_device.alignment, kind, tag);
+		return gpu_malloc(size, physical_device.alignment, kind);
 	}else{
-		return gpu_malloc(count * size_of(type), align_of(type), kind, tag);
+		return gpu_malloc(count * size_of(type), max(align_of(type), align_of(u64) * 2), kind);
 	}
 }
 
-gpu_malloc :: (count: s64, $type: Type, alignment: s64, kind: Memory_Kind = .DEFAULT, tag : string = "Untagged") -> *type{
+gpu_malloc :: (count: s64, $type: Type, alignment: s64, kind: Memory_Kind = .DEFAULT) -> *type{
 	return gpu_malloc(count * size_of(type), alignment, kind, tag);
 }
 
 gpu_free :: (ptr: *void, loc := #caller_location){
 	allocation := get_cpu_metadata(ptr);
+	delete(*device.allocator.cpu, xx ptr, cast(u64, ptr) + xx allocation.size);
 	vmaDestroyBuffer(device.allocator, allocation.buffer, allocation);
 }
 
@@ -382,12 +446,13 @@ GPU_Allocator :: struct{
 
 get_cpu_metadata :: (ptr: *void) -> *GPU_Allocation{
 	found, metadata := find(*device.allocator.cpu, xx ptr);
+	assert(found, "Could not locate pointer to mapped memory");
 	return metadata;
 }
 
 get_gpu_metadata :: (ptr: *void) -> *GPU_Allocation{
-	assert(false, "");
 	found, metadata := find(*device.allocator.gpu, xx ptr);
+	assert(found, "Could not locate pointer to mapped memory");
 	return metadata;
 }
 

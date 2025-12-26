@@ -106,6 +106,11 @@ Color_Target :: struct {
     write_mask: u8 = 0xf;
 };
 
+Shader_IR :: struct{
+	#as handle: VkShaderModule;
+	entry_point: string = "main";
+}
+
 Rasterizer_Descriptor :: struct {
 	Topology :: enum{
 		POINT_LIST                    ::  0;
@@ -132,7 +137,7 @@ Rasterizer_Descriptor :: struct {
 	alpha_to_coverage: bool = false;
     dual_source_blending: = false;
 
-    cull: Cull = .NONE;
+    cull: Cull = .COUNTER_CLOCKWISE;
     topology: Topology = .TRIANGLE_LIST;
 	
     depth_format: Texture.Format = .NONE;
@@ -232,8 +237,12 @@ gpu_create_graphic_pipeline :: (vertex: Shader_IR, fragment: Shader_IR, rasteriz
 	color_blending: VkPipelineColorBlendStateCreateInfo;
 	color_blending.logicOpEnable = VK_FALSE;
 	color_blending.logicOp = .COPY;
-	color_blending.attachmentCount = 1;
-	color_blending.pAttachments = *color_blend_attachment;
+	battachment := array_new(attachments.count, VkPipelineColorBlendAttachmentState);
+	for 0..attachments.count - 1{
+		battachment[it] = color_blend_attachment;
+	}
+	color_blending.attachmentCount = xx battachment.count;
+	color_blending.pAttachments = battachment.data;
 
 	vertex_input_info: VkPipelineVertexInputStateCreateInfo;
 
@@ -259,7 +268,7 @@ gpu_create_graphic_pipeline :: (vertex: Shader_IR, fragment: Shader_IR, rasteriz
 	pipeline_info.pDepthStencilState = *depth_stencil;
 	pipeline_info.layout = pipeline.layout;
 
-	state: [] VkDynamicState = .[.VIEWPORT, .SCISSOR];
+	state: [] VkDynamicState = .[.VIEWPORT, .SCISSOR, .DEPTH_BIAS, .BLEND_CONSTANTS , .STENCIL_COMPARE_MASK, .STENCIL_WRITE_MASK, .STENCIL_REFERENCE, .DEPTH_TEST_ENABLE, .DEPTH_WRITE_ENABLE, .DEPTH_COMPARE_OP, .STENCIL_OP];
 
 	dynamic_info: VkPipelineDynamicStateCreateInfo;
 	dynamic_info.dynamicStateCount = xx state.count;
@@ -304,11 +313,6 @@ gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 	vk_assert(vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, *compute_pipeline_create_info, null, *pipeline.handle));
 
 	return pipeline;
-}
-
-Shader_IR :: struct{
-	#as handle: VkShaderModule;
-	entry_point: string = "main";
 }
 
 gpu_generate_shader_ir :: (path: string, $entry_point: string = "main") -> Shader_IR {
@@ -371,38 +375,6 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 		vkCreateDescriptorSetLayout(device, *info, null, *layout[1]);
 	}
 	
-	
-	#if false{
-		get_instance_proc_add(instance, "vkGetDescriptorSetLayoutSizeEXT");
-		get_instance_proc_add(instance, "vkGetDescriptorSetLayoutBindingOffsetEXT");
-		{
-			descriptor_buffer_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
-			device_properties: VkPhysicalDeviceProperties2;
-			device_properties.pNext = *descriptor_buffer_props;
-			vkGetPhysicalDeviceProperties2(physical_device, *device_properties);
 
-			descriptor_set_size: VkDeviceSize;
-			vkGetDescriptorSetLayoutSizeEXT(device, layout[0], *descriptor_set_size);
-			print("0: Size: % vs % - offset: ", descriptor_set_size, align_to(xx (physical_device.proprieties.combinedImageSamplerDescriptorSize * 1), physical_device.proprieties.descriptorBufferOffsetAlignment));
-
-			binding_offset: u64;
-			vkGetDescriptorSetLayoutBindingOffsetEXT(device, layout[0], 0, *binding_offset);
-			log("%", align_to(binding_offset, physical_device.proprieties.descriptorBufferOffsetAlignment));
-		}	
-		{
-			descriptor_buffer_props: VkPhysicalDeviceDescriptorBufferPropertiesEXT;
-			device_properties: VkPhysicalDeviceProperties2;
-			device_properties.pNext = *descriptor_buffer_props;
-			vkGetPhysicalDeviceProperties2(physical_device, *device_properties);
-
-			descriptor_set_size: VkDeviceSize;
-			vkGetDescriptorSetLayoutSizeEXT(device, layout[1], *descriptor_set_size);
-			print("1: Size: % vs % - offset: ", descriptor_set_size, align_to(xx (physical_device.proprieties.storageImageDescriptorSize * 1), physical_device.proprieties.descriptorBufferOffsetAlignment));
-
-			binding_offset: u64;
-			vkGetDescriptorSetLayoutBindingOffsetEXT(device, layout[1], 0, *binding_offset);
-			log("%", binding_offset);
-		}
-}
 	return layout;
 }

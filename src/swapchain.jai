@@ -94,35 +94,6 @@ destroy_swapchain :: (swapchain: *Swapchain){
 	vkDestroySwapchainKHR(device, swapchain, null);
 	array_free(swapchain.images);
 }
-#if false{
-
-acquire_image_from_swapchain :: (swapchain: Swapchain, semaphore: GPU_Semaphore, fence: Fence = .{}, timeout: u64 = U64_MAX) -> *Image, u32, bool{
-	using rendering_context;
-	index: u32;
-	e := vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, *index);
-	if e == VkResult.ERROR_OUT_OF_DATE_KHR return null, U32_MAX, true;
-	return *swapchain.images[index], index, false;
-}
-
-present_queue_to_swapchain :: (swapchain: Swapchain, index: u32 /*temp*/, semaphore: *GPU_Semaphore = null){
-	using rendering_context;
-	present_info: VkPresentInfoKHR;
-	present_info.pSwapchains = *swapchain.handle;
-	present_info.swapchainCount = 1;
-
-	if semaphore{
-		present_info.pWaitSemaphores = *semaphore.handle;
-		present_info.waitSemaphoreCount = 1;
-	}
-
-	present_info.pImageIndices = *index;
-
-	vkQueuePresentKHR(device.queues[Device_Queue.GRAPHIC_PRESENT], *present_info);
-}
-
-}
-
-#scope_module;
 
 Surface :: struct {
 	#as handle: VkSurfaceKHR;

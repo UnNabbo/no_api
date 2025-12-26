@@ -117,12 +117,12 @@ main :: (){
 		gpu_barrier(command_buffer, .COMPUTE_SHADER, .ALL_GRAPHICS, .DESCRIPTORS);
  
 		render_pass: Render_Pass_Descriptor;
-		render_pass.color_targets = .[{*backbuffer, .LOAD, .STORE}];
+		render_pass.color_targets = .[{*backbuffer, .LOAD, .STORE, 0}];
 		gpu_begin_render_pass(command_buffer, render_pass);
 		gpu_bind_pipeline(*command_buffer, *gpipeline);
 		gpu_bind_texture_heap(command_buffer, texture_heap, rw_texture_heap);
 
-		gpu_draw_indexed(command_buffer, vertex.gpu, null, indices, 3);
+		gpu_draw_indexed(command_buffer, vertex.gpu, null, indices.cpu, 3);
 		gpu_end_render_pass(command_buffer);
 
 #if false{
