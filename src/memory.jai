@@ -287,6 +287,7 @@ gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT) -> 
 	vk_assert(vmaCreateBufferWithAlignment(device.allocator, *buffer_info, *alloc_info,xx alignment, *allocation.buffer, *allocation.handle, *allocation.info));
 
 	ptr : * void = ifx kind != .GPU then allocation.info.pMappedData else xx allocation.handle;
+	allocation.base = xx ptr;
 	add(*device.allocator.cpu, xx ptr, cast(u64, ptr) + xx size, allocation);
 	//log("Allocated bytes % with tag % at address %", size, tag, ptr);
 #if false{
@@ -380,7 +381,7 @@ gpu_create_texture_heap :: () -> *Texture_Descriptor{
 	return gpu_malloc(texture_heap_size, Texture_Descriptor, .DESCRIPTORS);
 }
 
-gpu_create_texture_view_descriptor :: (texture: Texture, ptr: *Texture_Descriptor){
+_gpu_create_texture_view_descriptor :: (texture: Texture, ptr: *Texture_Descriptor){
 	get_info: VkDescriptorGetInfoEXT;
 	get_info.type = .COMBINED_IMAGE_SAMPLER;
 
@@ -389,7 +390,6 @@ gpu_create_texture_view_descriptor :: (texture: Texture, ptr: *Texture_Descripto
 	sampler_info.magFilter = .NEAREST;
 	sampler_info.minFilter = .NEAREST;
 	vkCreateSampler(device, *sampler_info, null, *sampler);
-	
 	
 	image_info: VkDescriptorImageInfo;
 	image_info.imageView = texture.view;
@@ -405,7 +405,7 @@ gpu_create_rw_texture_heap :: () -> *RWTexture_Descriptor{
 	return gpu_malloc(rwtexture_heap_size, RWTexture_Descriptor, .DESCRIPTORS);
 }
 
-gpu_create_rw_texture_view_descriptor :: (texture: Texture, ptr: *RWTexture_Descriptor){
+_gpu_create_rw_texture_view_descriptor :: (texture: Texture, ptr: *RWTexture_Descriptor){
 	get_info: VkDescriptorGetInfoEXT;
 	get_info.type = .STORAGE_IMAGE;
 	
@@ -418,11 +418,11 @@ gpu_create_rw_texture_view_descriptor :: (texture: Texture, ptr: *RWTexture_Desc
 }
 
 gpu_create_texture_view_descriptor :: (texture: Texture, ptr: *RWTexture_Descriptor, index: u64) {
-	gpu_create_texture_view_descriptor(texture, xx (cast(*u8, ptr) + index * physical_device.proprieties.combinedImageSamplerDescriptorSize));
+	_gpu_create_texture_view_descriptor(texture, xx (cast(*u8, ptr) + index * physical_device.proprieties.combinedImageSamplerDescriptorSize));
 }
 
 gpu_create_rw_texture_view_descriptor :: (texture: Texture, ptr: *RWTexture_Descriptor, index: u64) {
-	gpu_create_rw_texture_view_descriptor(texture, xx (cast(*u8, ptr) + index * physical_device.proprieties.storageImageDescriptorSize));
+	_gpu_create_rw_texture_view_descriptor(texture, xx (cast(*u8, ptr) + index * physical_device.proprieties.storageImageDescriptorSize));
 }
 
 #scope_module;
@@ -432,7 +432,7 @@ GPU_Allocation :: struct {
 	info: VmaAllocationInfo;
 	mapped: bool;
 	size: s64;
-	
+	base: u64;
 	buffer: VkBuffer;
 }
 

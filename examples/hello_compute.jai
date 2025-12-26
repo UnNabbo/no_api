@@ -9,12 +9,6 @@
 #import "Basic";
 #import "File";
 
-Vertex :: struct {
-	pos: Vector3 ;
-	col: Vector3 ;
-	uvs: Vector2 ;
-}
-
 main :: (){
 	set_working_directory(#filepath);
 	window := create_window(1280, 720, "Window Creation");
@@ -46,6 +40,6 @@ main :: (){
 		if gpu_present(command_buffer, *queue, *backbuffer) then break;
 		gpu_end_command_recording(command_buffer);
 		
-		gpu_submit(*queue, frame_semaphore, frame + 1, command_buffer);
+		gpu_submit(*queue, command_buffer);
     }
 }

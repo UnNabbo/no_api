@@ -125,8 +125,9 @@ gpu_draw_indexed :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *vo
 	}
 
 	allocation := get_cpu_metadata(indices);
+	offset = cast(u64, indices) - allocation.base;
 	vkCmdBindIndexBuffer(buffer, allocation.buffer, 0, ifx T == u32 then .UINT32 else .UINT16);
-	vkCmdDrawIndexed(buffer, xx index_count, xx instance_count, 0, 0, 0);
+	vkCmdDrawIndexed(buffer, xx index_count, xx instance_count, offset, 0, 0);
 }
 
 gpu_draw_indexed_indirect :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *void, arguments: *void, draw_count: s64 = 1) {
