@@ -330,7 +330,6 @@ gpu_host_to_device_address :: (ptr: *void) -> *void{
 	return xx address;
 }
 
-
 gpu_create_texture :: (using info: Texture_Info, kind: Memory_Kind = .GPU) ->  Texture{
 	texture: Texture;
 	texture.usage = usage;

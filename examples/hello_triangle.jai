@@ -34,10 +34,6 @@ main :: (){
 	pipeline := gpu_create_graphic_pipeline(vertex_ir, fragment_ir, rasterizer_descriptor);
 	backbuffer := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .COLOR_ATTACHMENT | .TRANSFER_SRC | .TRANSFER_DST });
 
-	FRAMES_IN_FLIGHT :: 1;
-	frame: u64 = 1;
-	frame_semaphore := gpu_create_semaphore();
-
 	vertex := gpu_malloc(3, Vertex);
 	vertex[0] = .{{0, -0.5, 0}, {0, 0, 1}, {-1, -1}};
 	vertex[1] = .{{0.5, 0.5, 0}, {0, 0, 1},   {1, 1}};
@@ -51,8 +47,6 @@ main :: (){
 	while !quit {
         update_window_events();
 
-		if frame > FRAMES_IN_FLIGHT then gpu_wait_semaphore(frame_semaphore, frame);
-		
 		command_buffer := gpu_start_command_recording(*queue);
 		
 		gpu_clear(command_buffer, *backbuffer, {255, 0, 0, 255});
@@ -68,7 +62,6 @@ main :: (){
 		gpu_present(command_buffer, *queue, *backbuffer);
 		gpu_end_command_recording(command_buffer);
 		
-		gpu_submit(*queue, frame_semaphore, frame + 1, command_buffer);
-		frame += 1;
+		gpu_submit(*queue, command_buffer);
     }
 }
