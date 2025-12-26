@@ -132,8 +132,9 @@ plugin_names :: string.[];
 	w1 := create_workspace("playground", run = true);
 	w2 := create_workspace("hello_triangle");
 	w3 := create_workspace("hello_compute");
+	//w4 := create_workspace("sponza", "examples/sponza");
   
-	if compile_workspaces(w1, w2, w3) && run_all{
+	if compile_workspaces(w1, w2, w3, w4) && run_all{
 		for to_run  {
 			process: Process;
 			success := create_process(*process, "wt", "-d", #filepath, "cmd", "/k", it, "&", "exit", kill_process_if_parent_exits = false);

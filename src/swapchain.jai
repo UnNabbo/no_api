@@ -25,9 +25,9 @@ Swapchain :: struct{
 	semaphores: [] Semaphore;
 }
 
-create_swapchain :: (window: *void, width:s32, height: s32, present_mode: Swap_Chain_Present_Mode, old_handle: VkSwapchainKHR = VK_NULL_HANDLE) -> Swapchain {
+create_swapchain :: (surface: Surface, width:s32, height: s32, present_mode: Swap_Chain_Present_Mode, old_handle: VkSwapchainKHR = VK_NULL_HANDLE) -> Swapchain {
 	swapchain: Swapchain;
-	surface := create_surface(window);
+
 
 	swapchain.surface_format = .{.R8G8B8A8_UNORM, .COLOR_SPACE_SRGB_NONLINEAR_KHR};
 	swapchain.present_mode = xx present_mode;
@@ -122,7 +122,7 @@ present_queue_to_swapchain :: (swapchain: Swapchain, index: u32 /*temp*/, semaph
 
 }
 
-#scope_file;
+#scope_module;
 
 Surface :: struct {
 	#as handle: VkSurfaceKHR;

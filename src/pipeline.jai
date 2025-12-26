@@ -11,7 +11,55 @@ Pipeline :: struct{
 	usage: Kind;
 }
 
-Blending:: struct {
+Stencil :: struct {
+	Compare_Op :: enum {
+		NEVER :: 0;
+		LESS :: 1;
+		EQUAL :: 2;
+		LESS_OR_EQUAL :: 3;
+		GREATER :: 4;
+		NOT_EQUAL :: 5;
+		GREATER_OR_EQUAL :: 6;
+		ALWAYS :: 7;
+	}
+ 
+	Op :: enum {
+		KEEP :: 0;
+		ZERO :: 1;
+		REPLACE :: 2;
+		INCREMENT_AND_CLAMP :: 3;
+		DECREMENT_AND_CLAMP :: 4;
+		INVERT : :5;
+		INCREMENT_AND_WRAP :: 6;
+		DECREMENT_AND_WRAP :: 7;
+	}
+ 	
+    test: Compare_Op = .ALWAYS;
+    fail: Op = .KEEP;
+    pass: Op = .KEEP;
+    depth_fail: Op = .KEEP;
+    reference: u8 = 0;
+};
+
+
+Depth_Stencil :: struct {
+	Flags :: enum_flags {
+		READ  :: 0x1;
+		WRITE :: 0x2;
+	}
+
+    mode: Flags = 0;
+    test: Stencil.Compare_Op = .ALWAYS;
+    bias: f32 = 0.0;
+    bias_slope_factor: f32 = 0.0;
+    bias_clamp: f32 = 0.0;
+    read_mask: u8 = 0xff;
+    write_mask: u8 = 0xff;
+    front: Stencil;
+    back: Stencil;
+};
+
+Blending_State:: struct {
 	Op :: enum {
 		ADD;
 		SUB;
@@ -91,10 +139,8 @@ Rasterizer_Descriptor :: struct {
     stencil_format: Texture.Format = .NONE;
 
     color_targets: [] Color_Target;
-	blend_state: *Blending = null; // optional embedded blend state
+	blend_state: *Blending_State = null; // optional embedded blend state
 };
-
-//VkDeviceAddress 
 
 gpu_create_graphic_pipeline :: (vertex: Shader_IR, fragment: Shader_IR, rasterizer: Rasterizer_Descriptor) -> Pipeline{
 	pipeline: Pipeline;
@@ -288,7 +334,7 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 		layout_binding: VkDescriptorSetLayoutBinding;
 		layout_binding.binding = 0;
 		layout_binding.descriptorType = .COMBINED_IMAGE_SAMPLER;
-		layout_binding.descriptorCount = 1;
+		layout_binding.descriptorCount = xx texture_heap_size;
 		layout_binding.stageFlags = .ALL ;
 		layout_binding.pImmutableSamplers = null;
 	
@@ -298,7 +344,7 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 
 		info: VkDescriptorSetLayoutCreateInfo;
 		info.flags = .DESCRIPTOR_BUFFER_BIT_EXT;
-		info.bindingCount = xx texture_heap_size;
+		info.bindingCount = 1;
 		info.pBindings = *layout_binding;
 		info.pNext = *extended_info;
 	
@@ -308,7 +354,7 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 		layout_binding: VkDescriptorSetLayoutBinding;
 		layout_binding.binding = 0;
 		layout_binding.descriptorType = .STORAGE_IMAGE;
-		layout_binding.descriptorCount = 1;
+		layout_binding.descriptorCount = xx rwtexture_heap_size;
 		layout_binding.stageFlags = .ALL ;
 		layout_binding.pImmutableSamplers = null;
 	
@@ -318,7 +364,7 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 
 		info: VkDescriptorSetLayoutCreateInfo;
 		info.flags = .DESCRIPTOR_BUFFER_BIT_EXT;
-		info.bindingCount = xx rwtexture_heap_size;
+		info.bindingCount = 1;
 		info.pBindings = *layout_binding;
 		info.pNext = *extended_info;
 	

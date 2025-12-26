@@ -9,7 +9,7 @@ Queue :: struct {
 
 Command_Buffer :: struct {
 	#as handle: VkCommandBuffer;
-	current_pipeline: Pipeline;
+	current_pipeline: *Pipeline;
 }
 
 
@@ -32,7 +32,7 @@ Attachment :: struct {
 	
 	union {
 		clear_value: f32  = 0;
-		color: Color4  = .{0, 0, 0 ,0};
+		color: Vector4  = .{0, 0, 0 ,0};
 	}
 }
 
@@ -105,6 +105,8 @@ gpu_begin_render_pass :: (buffer: Command_Buffer, render_pass: Render_Pass_Descr
 	if render_pass.depth_target.texture then render_info.pDepthAttachment = *to_vk_attachment(render_pass.depth_target);
 	if render_pass.stencil_target.texture then render_info.pStencilAttachment = *to_vk_attachment(render_pass.stencil_target);
 	vkCmdBeginRendering(buffer, *render_info);
+	gpu_bind_viewport(buffer, 0, 0, xx width, xx height);
+	gpu_bind_scissor(buffer, 0, 0, width, height);
 }
 
 gpu_end_render_pass :: (buffer: Command_Buffer) {
@@ -121,7 +123,7 @@ gpu_draw_indexed :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *vo
 		vkCmdPushConstants(buffer, buffer.current_pipeline.layout, .FRAGMENT_BIT, size_of(VkDeviceAddress), size_of(VkDeviceAddress), *pixel_address);
 	}
 
-	allocation := table_find_pointer(*device.allocator.table, indices);
+	allocation := get_cpu_metadata(indices);
 	vkCmdBindIndexBuffer(buffer, allocation.buffer, 0, .UINT32);
 	vkCmdDrawIndexed(buffer, xx index_count, xx instance_count, 0, 0, 0);
 }
@@ -136,7 +138,7 @@ gpu_draw_indexed_indirect :: (buffer: Command_Buffer, vertex_data: *void, pixel_
 		vkCmdPushConstants(buffer, buffer.current_pipeline.layout, .FRAGMENT_BIT, size_of(VkDeviceAddress), size_of(VkDeviceAddress), *pixel_address);
 	}
 
-	allocation := table_find_pointer(*device.allocator.table, arguments);
+	allocation := get_gpu_metadata(arguments);
 	vkCmdDrawIndexedIndirect(buffer, allocation.buffer, 0, xx draw_count, size_of(VkDrawIndexedIndirectCommand));
 }
 
@@ -154,23 +156,13 @@ gpu_dispatch :: (buffer: Command_Buffer, ptr: *void, arguments: *void) {
 		vkCmdPushConstants(buffer, buffer.current_pipeline.layout, .COMPUTE_BIT, 0, size_of(VkDeviceAddress), *device_address);
 	}
 	
-	allocation := table_find_pointer(*device.allocator.table, arguments);
+	allocation := get_gpu_metadata(arguments);
 	vkCmdDispatchIndirect(buffer, allocation.buffer, 0);
 }
 
-gpu_bind_pipeline :: (buffer: *Command_Buffer, pipeline: Pipeline){
+gpu_bind_pipeline :: (buffer: *Command_Buffer, pipeline: *Pipeline){
 	buffer.current_pipeline = pipeline;
 	vkCmdBindPipeline(buffer, xx pipeline.usage, pipeline);
-}
-
-gpu_bind_viewport :: (buffer: Command_Buffer, x: f32, y: f32, width: f32, height: f32, near: f32 = 1, far: f32 = 1) {
-	view_port: VkViewport = .{x, y, width, height, near, far};
-	vkCmdSetViewport(buffer, 0, 1, *view_port);
-}
-
-gpu_bind_scissor :: (buffer: Command_Buffer, width: u32, height: u32) {
-	scissor: VkRect2D = .{{0, 0}, {width, height}};
-	vkCmdSetScissor(buffer, 0, 1, *scissor);
 }
 
 gpu_clear :: (buffer: Command_Buffer, image: *Texture,  color: Color4){
@@ -193,7 +185,7 @@ gpu_copy_to_texture :: (buffer: Command_Buffer, texture: *Texture, data: *void) 
 	copy_region.imageSubresource.layerCount = 1;
 	copy_region.imageExtent = texture.extent;
 
-	allocation := allocation_from_ptr(data);
+	allocation := get_cpu_metadata(data);
 	transition_image_layout(buffer, texture, .TRANSFER_DST_OPTIMAL);
 	vkCmdCopyBufferToImage(buffer, allocation.buffer, texture, xx texture.layout, 1,  *copy_region);
 }
@@ -236,6 +228,36 @@ gpu_blit_textures :: (buffer: Command_Buffer, source: *Texture, destination: *Te
 	if destination_layout != .UNDEFINED then transition_image_layout(buffer, destination, destination_layout);
 }
 
+gpu_set_depth_state :: ( buffer: Command_Buffer, using state: Depth_Stencil)
+{
+	if mode & .READ then vkCmdSetDepthTestEnable(buffer, xx true);
+	if mode & .WRITE then vkCmdSetDepthWriteEnable(buffer, xx true);
+	vkCmdSetDepthCompareOp(buffer, xx test);
+	vkCmdSetDepthBias(buffer, bias, bias_clamp, bias_slope_factor);
+	vkCmdSetStencilCompareMask(buffer, .FRONT_AND_BACK, xx read_mask);
+	vkCmdSetStencilWriteMask(buffer, .FRONT_AND_BACK, xx write_mask);
+	vkCmdSetStencilOp(buffer, .FACE_FRONT_BIT, xx front.fail, xx front.pass, xx front.depth_fail, xx front.test);
+	vkCmdSetStencilReference(buffer, .FACE_FRONT_BIT, front.reference);
+	vkCmdSetStencilOp(buffer, .FACE_BACK_BIT, xx back.fail, xx back.pass, xx back.depth_fail, xx back.test);
+	vkCmdSetStencilReference(buffer, .FACE_BACK_BIT, back.reference);
+}
+
+gpu_set_blend_state :: (buffer: Command_Buffer, state: Blending_State)
+{
+    value: u32= xx true;
+    vkCmdSetColorBlendEnableEXT(buffer, 0, 1, *value);
+	equation : VkColorBlendEquationEXT;
+    equation.srcColorBlendFactor = xx state.src_color_Factor;
+    equation.dstColorBlendFactor = xx state.dst_color_Factor;
+    equation.colorBlendOp        = xx state.color_op;
+    equation.srcAlphaBlendFactor = xx state.src_alpha_factor;
+    equation.dstAlphaBlendFactor = xx state.dst_alpha_factor;
+    equation.alphaBlendOp        = xx state.alpha_op;
+    vkCmdSetColorBlendEquationEXT(buffer, 0, 1, *equation);
+    vkCmdSetColorWriteMaskEXT(buffer, 0, 1, xx state.write_mask);
+}
+
+
 gpu_bind_texture_heap :: (buffer: Command_Buffer, sampling_ptr: *void, rw_ptr: *void = null){
 	descriptor_buffer_binding_info: [2]VkDescriptorBufferBindingInfoEXT;
 	descriptor_buffer_binding_info[0].usage   = .RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
@@ -249,7 +271,6 @@ gpu_bind_texture_heap :: (buffer: Command_Buffer, sampling_ptr: *void, rw_ptr: *
 	vkCmdSetDescriptorBufferOffsetsEXT(buffer, xx buffer.current_pipeline.usage, buffer.current_pipeline.layout,xx ifx sampling_ptr then 0 else 1, xx ifx sampling_ptr && rw_ptr then 2 else 1, index.data, offset.data);
 }
 
-
 gpu_present :: (buffer: Command_Buffer, queue: *Queue, image: *Texture){
 	queue.present = true;
 	swapchain.current_sync = xx ((swapchain.current_sync + 1) % (swapchain.semaphores.count ));
@@ -262,8 +283,6 @@ gpu_present :: (buffer: Command_Buffer, queue: *Queue, image: *Texture){
 	
 gpu_submit :: (queue: *Queue, semaphore: Semaphore, value: u64, buffers: ..Command_Buffer) {
 	if !buffers.count return;
-
-	
 	buffer_info := array_new(buffers.count, VkCommandBufferSubmitInfo);
 	for * buffer_info{
 		queue.alive_buffer -= 1;
@@ -410,4 +429,15 @@ to_vk_attachment :: (using attachment: Attachment) -> VkRenderingAttachmentInfo 
 	vk_attachment.clearValue.depthStencil.depth = clear_value;
 
 	return vk_attachment;
+}
+
+
+gpu_bind_viewport :: (buffer: Command_Buffer, x: f32, y: f32, width: f32, height: f32, near: f32 = 1, far: f32 = 1) {
+	view_port: VkViewport = .{x, y, width, height, near, far};
+	vkCmdSetViewport(buffer, 0, 1, *view_port);
+}
+
+gpu_bind_scissor :: (buffer: Command_Buffer, x: s32, y: s32, width: u32, height: u32) {
+	scissor: VkRect2D = .{{x, y}, {width, height}};
+	vkCmdSetScissor(buffer, 0, 1, *scissor);
 }

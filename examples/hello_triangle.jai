@@ -60,10 +60,8 @@ main :: (){
 		render_pass: Render_Pass_Descriptor;
 		render_pass.color_targets = .[{*backbuffer, .LOAD, .STORE}];
 		gpu_begin_render_pass(command_buffer, render_pass);
-		gpu_bind_pipeline(*command_buffer, pipeline);
+		gpu_bind_pipeline(*command_buffer, *pipeline);
 
-		gpu_bind_viewport(command_buffer, 0, 0, 1280, 720);
-		gpu_bind_scissor(command_buffer, 1280, 720);
 		gpu_draw_indexed(command_buffer, gpu_host_to_device_address(vertex), null, indices, 3);
 		gpu_end_render_pass(command_buffer);
 	

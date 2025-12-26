@@ -42,7 +42,7 @@ main :: (){
 		
 		command_buffer := gpu_start_command_recording(*queue);
 		
-		gpu_bind_pipeline(*command_buffer, pipeline);
+		gpu_bind_pipeline(*command_buffer, *pipeline);
 		gpu_bind_texture_heap(command_buffer, null, rw_texture_heap);
 		gpu_dispatch(command_buffer, null, 1280 / 16, 720 / 16, 1);
 	

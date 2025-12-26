@@ -3,7 +3,9 @@
 vkCmdBindDescriptorBuffersEXT : PFN_vkCmdBindDescriptorBuffersEXT;
 vkGetDescriptorEXT : PFN_vkGetDescriptorEXT;
 vkCmdSetDescriptorBufferOffsetsEXT : PFN_vkCmdSetDescriptorBufferOffsetsEXT;
-
+vkCmdSetColorBlendEnableEXT: PFN_vkCmdSetColorBlendEnableEXT;
+vkCmdSetColorBlendEquationEXT: PFN_vkCmdSetColorBlendEquationEXT;
+vkCmdSetColorWriteMaskEXT: PFN_vkCmdSetColorWriteMaskEXT;
 Device :: struct { 
 	#as handle: VkDevice;
 	physical_device: *Physical_Device;
@@ -117,6 +119,9 @@ create_instance :: () -> Instance	 {
 	vkCmdBindDescriptorBuffersEXT  = xx vkGetInstanceProcAddr(instance, "vkCmdBindDescriptorBuffersEXT");
 	vkGetDescriptorEXT  = xx vkGetInstanceProcAddr(instance, "vkGetDescriptorEXT");
 	vkCmdSetDescriptorBufferOffsetsEXT =  xx vkGetInstanceProcAddr(instance, "vkCmdSetDescriptorBufferOffsetsEXT");
+	vkCmdSetColorBlendEnableEXT = xx vkGetInstanceProcAddr(instance, "vkCmdSetColorBlendEnableEXT");
+	vkCmdSetColorBlendEquationEXT = xx vkGetInstanceProcAddr(instance, "vkCmdSetColorBlendEquationEXT");
+	vkCmdSetColorWriteMaskEXT = xx vkGetInstanceProcAddr(instance, "vkCmdSetColorWriteMaskEXT");
 	return instance; 
 }
 

@@ -34,7 +34,7 @@ main :: (){
 	log("Loaded image of size: %, %", image_size, channels);
 	//GPU API INITIALIZATION
 	
-	gpu_init(1, 1, {.GENERAL, 1});
+	gpu_init(32, {.GENERAL, 1});
 	//gpu_create_swapchain(window, 1280, 720, .MAILBOX);
 	gpu_create_swapchain(window, 1280, 720, .FIFO);
 	compute_queue := gpu_create_queue(.GENERAL);
@@ -51,7 +51,6 @@ main :: (){
 	};
 	gpipeline := gpu_create_graphic_pipeline(vertex_ir, fragment_ir, rasterizer_descriptor);
 	
-
 	upload_memory := gpu_malloc(image_size);
     memcpy(upload_memory, image_data, image_size);
 
@@ -96,13 +95,14 @@ main :: (){
 	indices.cpu[2] = 2;
 
 
-
-
+	//delete(*tree, 10, 15);
+	
     while !quit {
         update_window_events();
 		for get_window_resizes() {
-			log("%", it);
+            gpu_resize_swapchain(it.width, it.height);
 		}
+
 
 		if frame > FRAMES_IN_FLIGHT then gpu_wait_semaphore(frame_semaphore, frame );
 		
@@ -110,22 +110,18 @@ main :: (){
 		
 		//gpu_clear(command_buffer, *dst_texture, {255, 0, 0, 255});
 		
-#if true{
-		gpu_bind_pipeline(*command_buffer, pipeline);
+		gpu_bind_pipeline(*command_buffer, *pipeline);
 		gpu_bind_texture_heap(command_buffer, texture_heap, rw_texture_heap);
 		gpu_dispatch(command_buffer, null, 1280 / 16, 720 / 16, 1);
-}
 
 		gpu_barrier(command_buffer, .COMPUTE_SHADER, .ALL_GRAPHICS, .DESCRIPTORS);
  
 		render_pass: Render_Pass_Descriptor;
 		render_pass.color_targets = .[{*backbuffer, .LOAD, .STORE}];
 		gpu_begin_render_pass(command_buffer, render_pass);
-		gpu_bind_pipeline(*command_buffer, gpipeline);
+		gpu_bind_pipeline(*command_buffer, *gpipeline);
 		gpu_bind_texture_heap(command_buffer, texture_heap, rw_texture_heap);
 
-		gpu_bind_viewport(command_buffer, 0, 0, 1280, 720);
-		gpu_bind_scissor(command_buffer, 1280, 720);
 		gpu_draw_indexed(command_buffer, vertex.gpu, null, indices, 3);
 		gpu_end_render_pass(command_buffer);
 
