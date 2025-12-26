@@ -46,9 +46,11 @@ main :: (){
 	
 	while !quit {
         update_window_events();
-
-		command_buffer := gpu_start_command_recording(*queue);
+		for get_window_resizes() {
+            gpu_resize_swapchain(it.width, it.height);
+		}
 		
+		command_buffer := gpu_start_command_recording(*queue);
 		gpu_clear(command_buffer, *backbuffer, {255, 0, 0, 255});
 
 		render_pass: Render_Pass_Descriptor;
@@ -59,7 +61,7 @@ main :: (){
 		gpu_draw_indexed(command_buffer, gpu_host_to_device_address(vertex), null, indices, 3);
 		gpu_end_render_pass(command_buffer);
 	
-		gpu_present(command_buffer, *queue, *backbuffer);
+		if gpu_present(command_buffer, *queue, *backbuffer) then break;
 		gpu_end_command_recording(command_buffer);
 		
 		gpu_submit(*queue, command_buffer);
