@@ -6,10 +6,15 @@ vkCmdSetDescriptorBufferOffsetsEXT : PFN_vkCmdSetDescriptorBufferOffsetsEXT;
 vkCmdSetColorBlendEnableEXT: PFN_vkCmdSetColorBlendEnableEXT;
 vkCmdSetColorBlendEquationEXT: PFN_vkCmdSetColorBlendEquationEXT;
 vkCmdSetColorWriteMaskEXT: PFN_vkCmdSetColorWriteMaskEXT;
+
 Device :: struct { 
 	#as handle: VkDevice;
 	physical_device: *Physical_Device;
 	created_queues: [..] Queue_Family;
+	free_queues: [Queue_Family.Kind.COUNT][..] struct {
+		queue: VkQueue;
+		family: u32;
+	};
 	allocator: GPU_Allocator;
 }
 
@@ -21,6 +26,7 @@ Queue_Family :: struct {
 		GRAPHIC :: GENERAL;
 		COMPUTE;
 		TRANSFER;
+		COUNT;
 	}
 
 	kind: Kind =  .INVALID;

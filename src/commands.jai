@@ -1,10 +1,12 @@
 Queue :: struct {
 	#as handle: VkQueue = NULL_HANDLE;
 	#as family_index: u32 = cast,no_check(u32, -1);
-
-	pool: VkCommandPool = NULL_HANDLE;
-	present: bool;
 	alive_buffer: s32;
+	present: bool;
+
+	kind: Queue_Family.Kind;
+	
+	pool: VkCommandPool = NULL_HANDLE;
 }
 
 Command_Buffer :: struct {
@@ -41,10 +43,27 @@ Render_Pass_Descriptor :: struct {
 
 gpu_create_queue :: (kind: Queue_Family.Kind) -> Queue {
 	queue: Queue;
+	if device.free_queues[kind].count{
+		free := device.free_queues[kind][device.free_queues[kind].count - 1];
+		device.free_queues[kind].count -= 1;
+
+		queue.handle = free.queue;
+		queue.family_index = free.family;
+		queue.kind = kind;
+		
+		command_pool_info: VkCommandPoolCreateInfo;
+		command_pool_info.flags = .TRANSIENT_BIT;
+		command_pool_info.queueFamilyIndex = queue.family_index;
+		vk_assert(vkCreateCommandPool(device, *command_pool_info, null, *queue.pool));
+		
+		return queue;
+	}
+	
 	for * device.created_queues {
 		if it.kind == kind && it.used + 1 <= it.count {
 			vkGetDeviceQueue(device, xx it.index,xx it.used, *queue.handle);
 			queue.family_index = it.index;
+			queue.kind = it.kind;
 			it.used += 1;
 			
 			command_pool_info: VkCommandPoolCreateInfo;
@@ -57,6 +76,12 @@ gpu_create_queue :: (kind: Queue_Family.Kind) -> Queue {
 	}
 	return {};
 }
+gpu_destroy_queue :: (queue: *Queue){
+	push(*device.free_queues[queue.kind], .{queue.handle, queue.family_index});
+	vkDestroyCommandPool(device, queue.pool, null);
+	queue.* = {};
+}
+
 gpu_start_command_recording :: (queue: *Queue) -> Command_Buffer{
 	queue.alive_buffer += 1;
 	command_buffer: Command_Buffer;
@@ -125,9 +150,9 @@ gpu_draw_indexed :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *vo
 	}
 
 	allocation := get_cpu_metadata(indices);
-	offset = cast(u64, indices) - allocation.base;
+	offset := cast(u64, indices) - allocation.base;
 	vkCmdBindIndexBuffer(buffer, allocation.buffer, 0, ifx T == u32 then .UINT32 else .UINT16);
-	vkCmdDrawIndexed(buffer, xx index_count, xx instance_count, offset, 0, 0);
+	vkCmdDrawIndexed(buffer, xx index_count, xx instance_count, xx offset, 0, 0);
 }
 
 gpu_draw_indexed_indirect :: (buffer: Command_Buffer, vertex_data: *void, pixel_data: *void, arguments: *void, draw_count: s64 = 1) {
