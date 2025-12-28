@@ -1,3 +1,4 @@
+![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white) ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 # No API
 A Vulkan implementation/interpretation of Sebastian Aaltonen's blog post: ["No Graphics API"](https://www.sebastianaaltonen.com/blog/no-graphics-api).
 
