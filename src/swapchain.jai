@@ -1,7 +1,5 @@
 // Nabbo - 2025 / 11 / 22 - 08:04:09
 
-
-
 Swap_Chain_Present_Mode :: enum u32{
 	IMMEDIATE				  :: 0;
 	MAILBOX					  :: 1;
@@ -53,22 +51,6 @@ create_swapchain :: (surface: Surface, width:s32, height: s32, present_mode: Swa
 	swapchain_create_info.clipped = VK_TRUE;
 	swapchain_create_info.oldSwapchain = old_handle;
 
-	// // MIN_BIT_EXT            :: 0x1;
-    // // MAX_BIT_EXT            :: 0x2;
-    // // CENTERED_BIT_EXT       :: 0x4;
-	//     ONE_TO_ONE_BIT_EXT           :: 0x1;
-    // ASPECT_RATIO_STRETCH_BIT_EXT :: 0x2;
-    // STRETCH_BIT_EXT              :: 0x4;
-    // FLAG_BITS_MAX_ENUM_EXT       :: 0x7fffffff;
-
-#if false{
-	scaling :VkSwapchainPresentScalingCreateInfoEXT;
-	scaling.scalingBehavior = .STRETCH_BIT_EXT;
-	scaling.presentGravityX = .MIN_BIT_EXT;
-	scaling.presentGravityY = .MIN_BIT_EXT;
-	swapchain_create_info.pNext = *scaling;
-	
-}
 	vk_assert(vkCreateSwapchainKHR(device.handle, *swapchain_create_info, null, *swapchain.handle));
 	
 	swapchain.images = array_new(image_count, Texture);
@@ -103,19 +85,26 @@ Surface :: struct {
 	window_handle: *void;
 }
 
-create_surface :: (window_handle: * void) -> Surface { 
-	#import "Windows";
+create_surface :: (window_handle: Window_Type) -> Surface { 
 	surface: Surface;
 	surface.window_handle = window_handle;
 	
-	surface_info: VkWin32SurfaceCreateInfoKHR;
-	surface_info.hwnd = cast(HWND, window_handle);
-	surface_info.hinstance = GetModuleHandleA(null);
-	
-	vk_assert(vkCreateWin32SurfaceKHR(instance.handle, *surface_info, null, *surface.handle));
-	
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device.handle, surface.handle, *surface.capabilities);
+	#if OS == .WINDOWS {
+		#import "Windows";
+		surface_info: VkWin32SurfaceCreateInfoKHR;
+		surface_info.hwnd = xx window_handle;
+		surface_info.hinstance = GetModuleHandleA(null);
 
+		vk_assert(vkCreateWin32SurfaceKHR(instance, *surface_info, null, *surface.handle));
+	} else #if OS == .LINUX {
+		surface_info: VkXlibSurfaceCreateInfoKHR;
+        surface_info.display = XOpenDisplay(null);
+        surface_info.window = xx window_handle;
+		
+        vk_assert(vkCreateXlibSurfaceKHR(instance, *surface_info, null, *surface.handle));
+	}
+
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device.handle, surface.handle, *surface.capabilities);
 	format_count: u32;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device.handle, surface.handle, *format_count, null);
 	array_resize(*surface.formats, format_count);
@@ -127,4 +116,11 @@ create_surface :: (window_handle: * void) -> Surface {
 	vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device.handle, surface.handle, *present_mode_count, surface.present_modes.data);
 	
 	return surface;
+}
+
+destroy_surface :: (surface: *Surface){
+    vkDestroySurfaceKHR(instance, surface, null);
+	array_free(surface.formats);
+	array_free(surface.present_modes);
+    surface.* = {};
 }

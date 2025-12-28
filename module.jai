@@ -22,14 +22,15 @@ gpu_init :: (texture_heap_size: s64, rwtexture_heap_size: s64, queues: ..Queue_R
 	ctx.rwtexture_heap_size = rwtexture_heap_size;
 }
 
-gpu_create_swapchain :: (window: *void, width:s32, height: s32, present_mode: Swap_Chain_Present_Mode) {
-	window_ptr = window;
-	surface := create_surface(window_ptr);
+gpu_create_swapchain :: (window: Window_Type, width:s32, height: s32, present_mode: Swap_Chain_Present_Mode) {
+	window_handle = window;
+	surface = create_surface(window_handle);
 	swapchain = create_swapchain(surface, width, height, present_mode);
 }
 
-gpu_resize_swapchain :: (width:s32, height: s32) {
-	surface := create_surface(window_ptr);
+gpu_resize_swapchain :: (width: s32, height: s32) {
+	destroy_surface(*surface);
+	surface = create_surface(window_handle);
 	swapchain = create_swapchain(surface, width, height, swapchain.present_mode, swapchain);
 }
 
@@ -46,15 +47,19 @@ gpu_resize_swapchain :: (width:s32, height: s32) {
 #import "vulkan";
 #import "vulkan_memory_allocator";
 
+WT :: #import "Window_Type";  // Define this for the people.
+Window_Type :: WT.Window_Type;
+
 Rendering_Context :: struct{
 	instance: Instance;
 	physical_device: Physical_Device;
 	device: Device;
 	swapchain: Swapchain;
+	surface: Surface;
 	
 	texture_heap_size, rwtexture_heap_size: s64;
 
-	window_ptr: *void;
+	window_handle: Window_Type;
 }
 
 using ctx: Rendering_Context;

@@ -63,13 +63,18 @@ create_instance :: () -> Instance	 {
 	instance_info: VkInstanceCreateInfo;
 	instance_info.pApplicationInfo = *app_info;
 
-	//TODO MAYBE CHECK FOR SUPPORT
 	#if RENDERING_DEBUG{
-		extensions: []* u8 = .[
-		VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME, "VK_EXT_debug_utils"];
+		#if OS == .WINDOWS {
+			extensions: []* u8 = .[VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME, "VK_EXT_debug_utils"];
+		} else #if OS == .LINUX {
+			extensions: []* u8 = .[VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_EXTENSION_NAME, "VK_EXT_debug_utils"];
+		}
 	}else{
-		extensions: []* u8 = .[
-		VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME];
+		#if OS == .WINDOWS {
+			extensions: []* u8 = .[VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME];
+		} else #if OS == .LINUX {
+			extensions: []* u8 = .[VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_EXTENSION_NAME];
+		}
 	}
 	
 	instance_info.enabledExtensionCount = xx extensions.count;
@@ -120,7 +125,6 @@ create_instance :: () -> Instance	 {
 		get_instance_proc_add(instance.handle, "vkCreateDebugUtilsMessengerEXT");
 		vk_assert(vkCreateDebugUtilsMessengerEXT(instance.handle, *messenger_info, null, *instance.debug_messenger));
 	}
-	
 
 	vkCmdBindDescriptorBuffersEXT  = xx vkGetInstanceProcAddr(instance, "vkCmdBindDescriptorBuffersEXT");
 	vkGetDescriptorEXT  = xx vkGetInstanceProcAddr(instance, "vkGetDescriptorEXT");
