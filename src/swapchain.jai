@@ -26,7 +26,6 @@ Swapchain :: struct{
 create_swapchain :: (surface: Surface, width:s32, height: s32, present_mode: Swap_Chain_Present_Mode, old_handle: VkSwapchainKHR = VK_NULL_HANDLE) -> Swapchain {
 	swapchain: Swapchain;
 
-
 	swapchain.surface_format = .{.R8G8B8A8_UNORM, .COLOR_SPACE_SRGB_NONLINEAR_KHR};
 	swapchain.present_mode = xx present_mode;
 	swapchain.extent = .{xx width, xx height};

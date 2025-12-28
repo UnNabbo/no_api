@@ -29,9 +29,11 @@ gpu_create_swapchain :: (window: Window_Type, width:s32, height: s32, present_mo
 }
 
 gpu_resize_swapchain :: (width: s32, height: s32) {
+	vkDeviceWaitIdle(device);
+	destroy_swapchain(*swapchain);
 	destroy_surface(*surface);
 	surface = create_surface(window_handle);
-	swapchain = create_swapchain(surface, width, height, swapchain.present_mode, swapchain);
+	swapchain = create_swapchain(surface, width, height, swapchain.present_mode);
 }
 
 #scope_module;
