@@ -110,6 +110,7 @@ Shader_IR :: struct{
 	#as handle: VkShaderModule;
 	entry_point: *u8;
 	constants: VkSpecializationInfo;
+	constants_memory: *void;
 }
 
 Rasterizer_Descriptor :: struct {
@@ -320,7 +321,7 @@ gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 	return pipeline;
 }
 
-gpu_generate_shader_ir :: (path: string, entry_point: string = "main", constants: ..Type) -> Shader_IR {
+gpu_generate_shader_ir :: (path: string, entry_point: string = "main", constants: ..Any) -> Shader_IR {
 	data, result := read_entire_file(path);
 	assert(result, "Could not open file");
 
@@ -329,21 +330,33 @@ gpu_generate_shader_ir :: (path: string, entry_point: string = "main", constants
     create_info.pCode = xx data.data;
 
 	specialization_info: VkSpecializationInfo;
+	data_size : u32 = 0;
 	if constants.count{
 		entries := array_new(constants.count, VkSpecializationMapEntry);
 		defer array_free(entries);
-		offset : u32 = 0;
 		for constants{
 			entries[it_index].constantID = xx it_index;
-			entries[it_index].offset = offset;
-			entries[it_index].size = xx cast(*Type_Info, it).runtime_size;
-			offset += xx entries[it_index].size;
+			entries[it_index].offset = data_size;
+			entries[it_index].size = xx it.type.runtime_size;
+			data_size += xx entries[it_index].size;
 		}
+		
+		specialization_info.pMapEntries = entries.data;
+		specialization_info.mapEntryCount = xx entries.count;
 	}
+	constants_memory : *u8 = alloc(data_size);
+	offset := 0;
+	for constants{
+		memcpy(constants_memory + offset, it.value_pointer, it.type.runtime_size);
+		offset += it.type.runtime_size;
+	}
+	specialization_info.dataSize = data_size;
+	specialization_info.pData = null;
 	
 	ir: Shader_IR;
 	ir.entry_point = to_c_string(entry_point);
 	ir.constants = specialization_info;
+	ir.constants_memory = constants_memory;
     vk_assert(vkCreateShaderModule(device, *create_info, null, *ir.handle));
 	return ir;
 }
