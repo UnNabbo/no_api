@@ -257,8 +257,7 @@ gpu_blit_textures :: (buffer: Command_Buffer, source: *Texture, destination: *Te
 
 gpu_set_depth_state :: ( buffer: Command_Buffer, using state: Depth_Stencil)
 {
-	if mode & .READ then vkCmdSetDepthTestEnable(buffer, xx true);
-	if mode & .WRITE then vkCmdSetDepthWriteEnable(buffer, xx true);
+
 	vkCmdSetDepthCompareOp(buffer, xx test);
 	vkCmdSetDepthBias(buffer, bias, bias_clamp, bias_slope_factor);
 	vkCmdSetStencilCompareMask(buffer, .FRONT_AND_BACK, xx read_mask);

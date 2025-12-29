@@ -137,7 +137,7 @@ Rasterizer_Descriptor :: struct {
 	alpha_to_coverage: bool = false;
     dual_source_blending: = false;
 
-    cull: Cull = .COUNTER_CLOCKWISE;
+    cull: Cull = .NONE;
     topology: Topology = .TRIANGLE_LIST;
 	
     depth_format: Texture.Format = .NONE;
@@ -268,7 +268,7 @@ gpu_create_graphic_pipeline :: (vertex: Shader_IR, fragment: Shader_IR, rasteriz
 	pipeline_info.pDepthStencilState = *depth_stencil;
 	pipeline_info.layout = pipeline.layout;
 
-	state: [] VkDynamicState = .[.VIEWPORT, .SCISSOR, .DEPTH_BIAS, .BLEND_CONSTANTS , .STENCIL_COMPARE_MASK, .STENCIL_WRITE_MASK, .STENCIL_REFERENCE, .DEPTH_TEST_ENABLE, .DEPTH_WRITE_ENABLE, .DEPTH_COMPARE_OP, .STENCIL_OP];
+	state: [] VkDynamicState = .[.VIEWPORT, .SCISSOR, .DEPTH_BIAS, .BLEND_CONSTANTS , .STENCIL_COMPARE_MASK, .STENCIL_WRITE_MASK, .STENCIL_REFERENCE, .DEPTH_COMPARE_OP, .STENCIL_OP];
 
 	dynamic_info: VkPipelineDynamicStateCreateInfo;
 	dynamic_info.dynamicStateCount = xx state.count;
