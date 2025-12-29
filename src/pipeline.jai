@@ -109,8 +109,9 @@ Color_Target :: struct {
 Shader_IR :: struct{
 	#as handle: VkShaderModule;
 	entry_point: *u8;
-	constants: VkSpecializationInfo;
 	constants_memory: *void;
+	constants_map: [] VkSpecializationMapEntry;
+	constants: VkSpecializationInfo;
 }
 
 Rasterizer_Descriptor :: struct {
@@ -322,6 +323,7 @@ gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 }
 
 gpu_generate_shader_ir :: (path: string, entry_point: string = "main", constants: ..Any) -> Shader_IR {
+	ir: Shader_IR;
 	data, result := read_entire_file(path);
 	assert(result, "Could not open file");
 
@@ -332,17 +334,16 @@ gpu_generate_shader_ir :: (path: string, entry_point: string = "main", constants
 	specialization_info: VkSpecializationInfo;
 	data_size : u32 = 0;
 	if constants.count{
-		entries := array_new(constants.count, VkSpecializationMapEntry);
-		defer array_free(entries);
+		ir.constants_map = array_new(constants.count, VkSpecializationMapEntry);
 		for constants{
-			entries[it_index].constantID = xx it_index;
-			entries[it_index].offset = data_size;
-			entries[it_index].size = xx it.type.runtime_size;
-			data_size += xx entries[it_index].size;
+			ir.constants_map[it_index].constantID = xx it_index;
+			ir.constants_map[it_index].offset = data_size;
+			ir.constants_map[it_index].size = xx it.type.runtime_size;
+			data_size += xx ir.constants_map[it_index].size;
 		}
 		
-		specialization_info.pMapEntries = entries.data;
-		specialization_info.mapEntryCount = xx entries.count;
+		specialization_info.pMapEntries = ir.constants_map.data;
+		specialization_info.mapEntryCount = xx ir.constants_map.count;
 	}
 	constants_memory : *u8 = alloc(data_size);
 	offset := 0;
@@ -353,7 +354,6 @@ gpu_generate_shader_ir :: (path: string, entry_point: string = "main", constants
 	specialization_info.dataSize = data_size;
 	specialization_info.pData = constants_memory;
 	
-	ir: Shader_IR;
 	ir.entry_point = to_c_string(entry_point);
 	ir.constants = specialization_info;
 	ir.constants_memory = constants_memory;

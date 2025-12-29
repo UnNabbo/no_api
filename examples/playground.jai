@@ -42,7 +42,8 @@ main :: (){
 	compute_ir := gpu_generate_shader_ir("res/compute.spv");
 	pipeline := gpu_create_compute_pipeline(compute_ir);
 
-	vertex_ir := gpu_generate_shader_ir("res/shader.spv", "v_main");
+	mat : Matrix4;
+	vertex_ir := gpu_generate_shader_ir("res/shader.spv", "v_main", mat);
 	fragment_ir := gpu_generate_shader_ir("res/shader.spv", "f_main");
 	rasterizer_descriptor: Rasterizer_Descriptor = .{
 		color_targets = .[
