@@ -351,7 +351,7 @@ gpu_generate_shader_ir :: (path: string, entry_point: string = "main", constants
 		offset += it.type.runtime_size;
 	}
 	specialization_info.dataSize = data_size;
-	specialization_info.pData = null;
+	specialization_info.pData = constants_memory;
 	
 	ir: Shader_IR;
 	ir.entry_point = to_c_string(entry_point);
