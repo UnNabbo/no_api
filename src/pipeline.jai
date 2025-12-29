@@ -108,7 +108,8 @@ Color_Target :: struct {
 
 Shader_IR :: struct{
 	#as handle: VkShaderModule;
-	entry_point: string = "main";
+	entry_point: *u8;
+	constants: VkSpecializationInfo;
 }
 
 Rasterizer_Descriptor :: struct {
@@ -249,10 +250,14 @@ gpu_create_graphic_pipeline :: (vertex: Shader_IR, fragment: Shader_IR, rasteriz
 	shader_stages: [2]VkPipelineShaderStageCreateInfo;
 	shader_stages[0].stage = .VERTEX_BIT;
 	shader_stages[0].module = vertex;
-	shader_stages[0].pName = vertex.entry_point.data;
+	shader_stages[0].pName = vertex.entry_point;
+	shader_stages[0].pSpecializationInfo = *vertex.constants;
 	shader_stages[1].stage = .FRAGMENT_BIT;
 	shader_stages[1].module = fragment;
-	shader_stages[1].pName = fragment.entry_point.data;
+	shader_stages[1].pName = fragment.entry_point;
+	shader_stages[1].pSpecializationInfo = *fragment.constants;
+
+
 	
 	pipeline_info: VkGraphicsPipelineCreateInfo;
 	pipeline_info.pNext = *render_info;
@@ -306,7 +311,7 @@ gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 
 	compute_pipeline_create_info.stage.stage = .COMPUTE_BIT;
 	compute_pipeline_create_info.stage.module = ir;
-	compute_pipeline_create_info.stage.pName = ir.entry_point.data;
+	compute_pipeline_create_info.stage.pName = ir.entry_point;
 	compute_pipeline_create_info.stage.pSpecializationInfo = null;
 	
 	
@@ -315,16 +320,30 @@ gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 	return pipeline;
 }
 
-gpu_generate_shader_ir :: (path: string, $entry_point: string = "main") -> Shader_IR {
+gpu_generate_shader_ir :: (path: string, entry_point: string = "main", constants: ..Type) -> Shader_IR {
 	data, result := read_entire_file(path);
 	assert(result, "Could not open file");
 
 	create_info: VkShaderModuleCreateInfo;
     create_info.codeSize = xx data.count;
     create_info.pCode = xx data.data;
+
+	specialization_info: VkSpecializationInfo;
+	if constants.count{
+		entries := array_new(constants.count, VkSpecializationMapEntry);
+		defer array_free(entries);
+		offset : u32 = 0;
+		for constants{
+			entries[it_index].constantID = xx it_index;
+			entries[it_index].offset = offset;
+			entries[it_index].size = xx cast(*Type_Info, it).runtime_size;
+			offset += xx entries[it_index].size;
+		}
+	}
 	
 	ir: Shader_IR;
-	ir.entry_point = entry_point;
+	ir.entry_point = to_c_string(entry_point);
+	ir.constants = specialization_info;
     vk_assert(vkCreateShaderModule(device, *create_info, null, *ir.handle));
 	return ir;
 }
