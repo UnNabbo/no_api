@@ -99,15 +99,35 @@ create_instance :: () -> Instance	 {
 			user_data: *void
 		) -> VkBool32 #c_call{
 			push_context,defer_pop cast(*#Context, user_data).*;
-
 			if message_severity == .ERROR_BIT_EXT {
-				log_error("[Vulkan][Error]: %", to_string(callback_data.pMessage));
+				
+				TRACE_OFFSET :: 2;
+				trace := pack_stack_trace();
+				node := *trace[TRACE_OFFSET];  // 2 because we ignore the calls that happens here
+	
+				// search for the longest function name
+				longest := 0;
+				while node {
+					if node.info && node.info.name.count > longest then longest = node.info.name.count;
+					node = node.next;
+				}
+	
+				node = *trace[TRACE_OFFSET];  // rewind
+
+				location: string;
+				if node[0].info {
+					//print("'%'", node [0].info.name);
+					for 0 .. (longest - node[0].info.name.count) write_string(" ");
+					location = tprint("%:%", node[0].info.location.fully_pathed_filename, node[0].line_number);
+				}
 				//assert(false, "Read error message above");
+				//assert(false, "Read error message above");
+				message := to_string(callback_data.pMessage);
+				log_error("[Vulkan][Error][%]: %", location, message);
 			}else{
 				log("[Vulkan][Info]: %", to_string(callback_data.pMessage));
 			}
 			return VK_FALSE;
-			
 		}
 	
 		messenger_info.pfnUserCallback = debug_callback;

@@ -55,7 +55,7 @@ gpu_compile_shader :: (path: string, debug := false, is_file := true) -> bool, s
     session_desc: Slang.SessionDesc;
     session_desc.targets = *target_desc;
     session_desc.targetCount = 1;
-    session_desc.defaultMatrixLayoutMode = .ROW_MAJOR;
+    session_desc.defaultMatrixLayoutMode = .COLUMN_MAJOR;
     session_desc.compilerOptionEntries = options.data;
     session_desc.compilerOptionEntryCount = xx options.count;
 
