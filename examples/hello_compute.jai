@@ -18,7 +18,7 @@ main :: (){
 	gpu_create_swapchain(window, 1280, 720, .FIFO);
 	queue := gpu_create_queue(.GENERAL);
 	
-	compute_ir := gpu_generate_shader_ir("res/compute.spv");
+	compute_ir := gpu_create_shader_from_ir("res/compute.spv");
 	pipeline := gpu_create_compute_pipeline(compute_ir);
 	backbuffer := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .COLOR_ATTACHMENT | .TRANSFER_SRC | .TRANSFER_DST });
 

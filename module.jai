@@ -1,4 +1,4 @@
-#module_parameters(RENDERING_DEBUG := true);
+#module_parameters(IMPORT_SLANG_COMPILER := true, RENDERING_DEBUG := true);
 
 #load "src/utils.jai";
 #load "src/init.jai";
@@ -7,10 +7,9 @@
 #load "src/commands.jai";
 #load "src/swapchain.jai";
 #load "src/pipeline.jai";
+#if IMPORT_SLANG_COMPILER then #load "src/shader_compiler.jai";
 
 gpu_init :: (texture_heap_size: s64, queues: ..Queue_Request_Entry) {
-	gpu_context = new(Rendering_Context);
-	
 	gpu_init(texture_heap_size, texture_heap_size, ..queues);
 }
 
@@ -24,6 +23,8 @@ gpu_init :: (texture_heap_size: s64, rwtexture_heap_size: s64, queues: ..Queue_R
 
 	gpu_context.texture_heap_size = texture_heap_size;
 	gpu_context.rwtexture_heap_size = rwtexture_heap_size;
+
+    #if IMPORT_SLANG_COMPILER then Slang.slang_createGlobalSession(Slang.SLANG_API_VERSION, *slang_global_session);
 }
 
 gpu_create_swapchain :: (window: Window_Type, width:s32, height: s32, present_mode: Swap_Chain_Present_Mode) {
@@ -50,8 +51,10 @@ gpu_context: *Rendering_Context;
 #import "Math";
 #import "File";
 #import "Thread";
+#import "String";
 #import "System";
 
+Slang :: #import,dir "modules/slang";
 #import,dir "modules/vulkan";
 #import,dir "modules/vulkan_memory_allocator";
 
@@ -65,9 +68,11 @@ Rendering_Context :: struct{
 	swapchain: Swapchain;
 	surface: Surface;
 	
-	texture_heap_size, rwtexture_heap_size: s64;
-
 	window_handle: Window_Type;
+	texture_heap_size, rwtexture_heap_size: s64;
+	
+	#if IMPORT_SLANG_COMPILER then slang_global_session: *Slang.IGlobalSession;
 }
+
 
 using gpu_context;

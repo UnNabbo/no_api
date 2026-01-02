@@ -288,6 +288,7 @@ gpu_create_graphic_pipeline :: (vertex: Shader_IR, fragment: Shader_IR, rasteriz
 	
 	return pipeline;
 }
+
 gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 	pipeline: Pipeline;
 	pipeline.usage = .COMPUTE;
@@ -322,11 +323,14 @@ gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 	return pipeline;
 }
 
-gpu_generate_shader_ir :: (path: string, entry_point: string = "main", constants: ..Any) -> Shader_IR {
-	ir: Shader_IR;
+gpu_create_shader_from_ir :: (path: string, entry_point: string = "main", constants: ..Any) -> Shader_IR {
 	data, result := read_entire_file(path);
 	assert(result, "Could not open file");
+	return gpu_create_shader(data, entry_point, ..constants);
+}
 
+gpu_create_shader :: (data: string, entry_point: string = "main", constants: ..Any) -> Shader_IR {
+	ir: Shader_IR;
 	create_info: VkShaderModuleCreateInfo;
     create_info.codeSize = xx data.count;
     create_info.pCode = xx data.data;
@@ -360,7 +364,6 @@ gpu_generate_shader_ir :: (path: string, entry_point: string = "main", constants
     vk_assert(vkCreateShaderModule(device, *create_info, null, *ir.handle));
 	return ir;
 }
-
 #scope_file;
 
 create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{

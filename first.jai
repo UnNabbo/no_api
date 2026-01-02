@@ -97,6 +97,7 @@ create_workspace :: (file: string, src_path := "examples", run := false) -> Work
 	output_path = build_path;
 	make_directory_if_it_does_not_exist(output_path, true);
 	copy_file("modules/vulkan_memory_allocator/windows/Vulkan_Memory_Allocator.dll", tprint("%/Vulkan_Memory_Allocator.dll", output_path));
+	copy_file("modules/slang/lib/win/slang-compiler.dll", tprint("%/slang-compiler.dll", output_path));
 	set_build_options(options, w);
 
 	if run {
@@ -127,11 +128,12 @@ plugin_names :: string.[];
 				run_all = false;
 		}
 	}
-	
-	w1 := create_workspace("playground", run = true);
+
+	run := false;
+	w1 := create_workspace("playground", run = run);
 	w2 := create_workspace("hello_triangle", run = true);
-	w3 := create_workspace("hello_compute", run = true);
-	w4 := create_workspace("sponza", "examples/sponza", run = true);
+	w3 := create_workspace("hello_compute", run = run);
+	w4 := create_workspace("sponza", "examples/sponza", run = run);
   
 	if compile_workspaces(w1, w2, w3, w4) && run_all{
 		for to_run  {

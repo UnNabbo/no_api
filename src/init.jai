@@ -109,8 +109,6 @@ create_instance :: () -> Instance	 {
 			return VK_FALSE;
 			
 		}
-		
-
 	
 		messenger_info.pfnUserCallback = debug_callback;
 		messenger_info.pUserData = *context;

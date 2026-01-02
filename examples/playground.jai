@@ -39,12 +39,12 @@ main :: (){
 	gpu_create_swapchain(window, 1280, 720, .FIFO);
 	compute_queue := gpu_create_queue(.GENERAL);
 
-	compute_ir := gpu_generate_shader_ir("res/compute.spv");
+	compute_ir := gpu_create_shader_from_ir("res/compute.spv");
 	pipeline := gpu_create_compute_pipeline(compute_ir);
 
 	mat : Matrix4;
-	vertex_ir := gpu_generate_shader_ir("res/shader.spv", "v_main", mat);
-	fragment_ir := gpu_generate_shader_ir("res/shader.spv", "f_main");
+	vertex_ir := gpu_create_shader_from_ir("res/shader.spv", "v_main", mat);
+	fragment_ir := gpu_create_shader_from_ir("res/shader.spv", "f_main");
 	rasterizer_descriptor: Rasterizer_Descriptor = .{
 		color_targets = .[
 			.{format = .R8G8B8A8_UNORM}
