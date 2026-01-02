@@ -74,7 +74,6 @@ create_workspace :: (file: string, src_path := "examples", run := false) -> Work
 	
 	import_paths : [..] string;
     import_paths.allocator = temp;
-    array_add(*import_paths, tprint("%..", #filepath));
     array_add(*import_paths, ..options.import_path);
     import_path = import_paths;
 	

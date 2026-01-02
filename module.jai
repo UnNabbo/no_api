@@ -9,10 +9,14 @@
 #load "src/pipeline.jai";
 
 gpu_init :: (texture_heap_size: s64, queues: ..Queue_Request_Entry) {
+	gpu_context = new(Rendering_Context);
+	
 	gpu_init(texture_heap_size, texture_heap_size, ..queues);
 }
 
 gpu_init :: (texture_heap_size: s64, rwtexture_heap_size: s64, queues: ..Queue_Request_Entry) {
+	gpu_context = new(Rendering_Context);
+	
 	instance = create_instance();
 	physical_device = create_physical_device(*instance);
 	device = create_device(*physical_device, ..queues);
@@ -36,7 +40,7 @@ gpu_resize_swapchain :: (width: s32, height: s32) {
 	swapchain = create_swapchain(surface, width, height, swapchain.present_mode);
 }
 
-gpu_context: Rendering_Context;
+gpu_context: *Rendering_Context;
 
 #scope_module;
 
