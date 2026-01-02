@@ -83,11 +83,9 @@ gpu_compile_shader :: (path: string, debug := false, is_file := true) -> bool, s
     Slang.IComponentType_getTargetCode(component, 0, *spirv_code, *diagnostic_blob);
     if diagnostic_blob then print_diagnostic_blob(diagnostic_blob);
 
-    spirv_code_raw := string.{
-        data = Slang.ISlangBlob_getBufferPointer(spirv_code),
-        count = cast(s64, Slang.ISlangBlob_getBufferSize(spirv_code))
-    };
-
+    spirv_code_raw: string;
+    spirv_code_raw.count = cast(s64, Slang.ISlangBlob_getBufferSize(spirv_code));
+    spirv_code_raw.data = alloc(size_of(u8) * spirv_code_raw.count);
     memcpy(spirv_code_raw.data, Slang.ISlangBlob_getBufferPointer(spirv_code), spirv_code_raw.count);
 
     Slang.ISlangUnknown_release(spirv_code);

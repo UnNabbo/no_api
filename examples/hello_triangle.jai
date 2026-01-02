@@ -15,6 +15,8 @@ Vertex :: struct {
 	uvs: Vector2 ;
 }
 
+_, shader :: #run gpu_compile_shader("examples/res/shader.slang");
+
 main :: (){
 	set_working_directory(#filepath);
 	window := create_window(1280, 720, "Window Creation");
@@ -24,7 +26,7 @@ main :: (){
 	gpu_create_swapchain(window, 1280, 720, .FIFO);
 	queue := gpu_create_queue(.GENERAL);
 	
-	vertex_ir := gpu_compile_and_create_shader("res/shader.slang", "v_main");
+	vertex_ir := gpu_create_shader(shader, "v_main");
 	fragment_ir := gpu_compile_and_create_shader("res/shader.slang", "f_main");
 	rasterizer_descriptor: Rasterizer_Descriptor = .{
 		color_targets = .[
