@@ -1887,7 +1887,7 @@ vmaFreeStatsString :: (allocator: VmaAllocator, pStatsString: *u8) -> void #fore
 
 #scope_file
 
-#import "vulkan";
+#import,dir "../vulkan";
 
 #if OS == .WINDOWS {
 	libvma :: #library "windows/Vulkan_Memory_Allocator";

@@ -284,7 +284,7 @@ gpu_malloc :: (size: s64, alignment: s64 = 16, kind: Memory_Kind = .DEFAULT) -> 
 	buffer_info: VkBufferCreateInfo;
 	buffer_info.size = cast(u64, size);
 	buffer_info.usage = .SHADER_DEVICE_ADDRESS_BIT | .TRANSFER_SRC_BIT | .TRANSFER_DST_BIT | .INDEX_BUFFER_BIT | ifx kind == .DESCRIPTORS then .RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
-	vk_assert(vmaCreateBufferWithAlignment(device.allocator, *buffer_info, *alloc_info,xx alignment, *allocation.buffer, *allocation.handle, *allocation.info));
+	vk_assert(vmaCreateBufferWithAlignment(device.allocator,xx *buffer_info, *alloc_info,xx alignment,xx *allocation.buffer, *allocation.handle, *allocation.info));
 
 	ptr : * void = ifx kind != .GPU then allocation.info.pMappedData else xx allocation.handle;
 	allocation.base = xx ptr;
@@ -316,7 +316,7 @@ gpu_malloc :: (count: s64, $type: Type, alignment: s64, kind: Memory_Kind = .DEF
 gpu_free :: (ptr: *void, loc := #caller_location){
 	allocation := get_cpu_metadata(ptr);
 	delete(*device.allocator.cpu, xx ptr, cast(u64, ptr) + xx allocation.size);
-	vmaDestroyBuffer(device.allocator, allocation.buffer, allocation);
+	vmaDestroyBuffer(device.allocator,xx allocation.buffer, allocation);
 }
 
 gpu_host_to_device_address :: (ptr: *void) -> *void{
@@ -358,7 +358,7 @@ gpu_create_texture :: (using info: Texture_Info, kind: Memory_Kind = .GPU) ->  T
 	alloc_info.usage = ifx kind != .GPU then .AUTO else .GPU_ONLY;
 	alloc_info.flags = ifx kind != .GPU then .MAPPED_BIT | ifx kind == .DEFAULT then .HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-	vk_assert(vmaCreateImage(device.allocator, *image_info, *alloc_info, *texture.handle, *texture.allocation, *texture.allocation_info));
+	vk_assert(vmaCreateImage(device.allocator,xx *image_info, *alloc_info,xx *texture.handle, *texture.allocation, *texture.allocation_info));
 
 	view_info: VkImageViewCreateInfo;
     view_info.viewType = ._2D;
@@ -459,9 +459,9 @@ create_gpu_allocator :: () -> GPU_Allocator{
 	allocator: GPU_Allocator;
 
 	allocator_info: VmaAllocatorCreateInfo;
-    allocator_info.physicalDevice = physical_device;
-    allocator_info.device = device;
-    allocator_info.instance = instance;
+    allocator_info.physicalDevice = xx physical_device.handle;
+    allocator_info.device = xx device.handle;
+    allocator_info.instance = xx instance.handle;
     allocator_info.flags = .BUFFER_DEVICE_ADDRESS_BIT;
     vmaCreateAllocator(*allocator_info, *allocator.handle);
 	return allocator;

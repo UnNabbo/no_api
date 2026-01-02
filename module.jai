@@ -46,8 +46,8 @@ gpu_resize_swapchain :: (width: s32, height: s32) {
 #import "Thread";
 #import "System";
 
-#import "vulkan";
-#import "vulkan_memory_allocator";
+#import,dir "modules/vulkan";
+#import,dir "modules/vulkan_memory_allocator";
 
 WT :: #import "Window_Type";  // Define this for the people.
 Window_Type :: WT.Window_Type;

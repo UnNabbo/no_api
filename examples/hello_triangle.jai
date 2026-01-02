@@ -31,6 +31,7 @@ main :: (){
 			.{format = .R8G8B8A8_UNORM}
 		]
 	};
+	
 	pipeline := gpu_create_graphic_pipeline(vertex_ir, fragment_ir, rasterizer_descriptor);
 	backbuffer := gpu_create_texture({1280, 720, .R8G8B8A8_UNORM, .STORAGE | .COLOR_ATTACHMENT | .TRANSFER_SRC | .TRANSFER_DST });
 
