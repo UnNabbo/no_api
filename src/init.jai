@@ -106,7 +106,6 @@ create_instance :: () -> Instance	 {
 			}else{
 				log("[Vulkan][Info]: %", to_string(callback_data.pMessage));
 			}
-			print("\n");
 			return VK_FALSE;
 			
 		}
@@ -215,7 +214,7 @@ create_physical_device :: (instance: *Instance) -> Physical_Device{
 		if (device_properties.deviceType == .DISCRETE_GPU) {
 			device.available_queues = families;
 			device.handle = physical_device;
-			log("%", families);
+			//log("%", families);
 			break;
 		}else{
 			array_free(families);
@@ -226,7 +225,7 @@ create_physical_device :: (instance: *Instance) -> Physical_Device{
 
 	vkGetPhysicalDeviceProperties2(device, *props2);
 	device.alignment = xx max(device.proprieties.descriptorBufferOffsetAlignment,/*xx ifx props2.properties.vendorID == 0x1002 then 256 else*/ 0);
-	log("Current buffer alignment %", device.alignment);
+	//log("Current buffer alignment %", device.alignment);
 	return device;
 }
 
@@ -244,7 +243,7 @@ create_device :: (physical_device: *Physical_Device, queues: ..Queue_Request_Ent
 	queue_create_infos: [..] VkDeviceQueueCreateInfo;
 	defer array_free(queue_create_infos);
 	for entry: queues {
-		log("Creating % of %", entry, physical_device.available_queues);
+		//log("Creating % of %", entry, physical_device.available_queues);
 		for * physical_device.available_queues {
 			if it.kind == entry.kind && it.used + 1 <= it.count {
 				it.used += 1;
@@ -252,7 +251,7 @@ create_device :: (physical_device: *Physical_Device, queues: ..Queue_Request_Ent
 				
 				queue_create_info: VkDeviceQueueCreateInfo;
 				queue_create_info.queueFamilyIndex = xx it.index;
-				log("% - % of %", it.kind, entry.count, it.count);
+				//log("% - % of %", it.kind, entry.count, it.count);
 				queue_create_info.queueCount = xx entry.count;
 				queue_create_info.pQueuePriorities = *queue_priority;
 				array_add(*queue_create_infos, queue_create_info);

@@ -60,7 +60,7 @@ gpu_create_queue :: (kind: Queue_Family.Kind) -> Queue {
 	}
 	
 	for * device.created_queues {
-		if it.kind == kind && it.used + 1 <= it.count {
+		if it.kind == kind && it.used < it.count {
 			vkGetDeviceQueue(device, xx it.index,xx it.used, *queue.handle);
 			queue.family_index = it.index;
 			queue.kind = it.kind;
@@ -73,7 +73,9 @@ gpu_create_queue :: (kind: Queue_Family.Kind) -> Queue {
 			
 			return queue;
 		}
+		assert(it.used != it.count, "Trying to allocate queue which was not accounted for in initialization(%/%)", it.used + 1, it.count);
 	}
+	assert(false, "Trying to allocate queue which was not accounted for in initialization(1/0)");
 	return {};
 }
 gpu_destroy_queue :: (queue: *Queue){
