@@ -1,4 +1,6 @@
 gpu_compile_shader :: (path: string, debug := false, is_file := true) -> bool, string {
+	if !slang_global_session then Slang.slang_createGlobalSession(Slang.SLANG_API_VERSION, *slang_global_session);
+	
 	print_diagnostic_blob :: (blob: *Slang.IBlob) {
 		log_error("[Slang][Error]: %", string.{
 			data = Slang.ISlangBlob_getBufferPointer(blob),
@@ -97,3 +99,9 @@ gpu_compile_and_create_shader :: (path: string, entry_point: string = "main", co
 	_, data := gpu_compile_shader(path, is_file = is_file);
 	return gpu_create_shader(data, entry_point, ..constants);
 }
+
+#scope_file;
+
+slang_global_session: *Slang.IGlobalSession;
+Slang :: #import,dir "../modules/slang";
+#import "String";

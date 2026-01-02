@@ -324,6 +324,7 @@ gpu_create_compute_pipeline :: (ir: Shader_IR) -> Pipeline{
 }
 
 gpu_create_shader_from_ir :: (path: string, entry_point: string = "main", constants: ..Any) -> Shader_IR {
+
 	data, result := read_entire_file(path);
 	assert(result, "Could not open file");
 	return gpu_create_shader(data, entry_point, ..constants);
@@ -413,3 +414,7 @@ create_texture_heap_descriptor_set_layout :: () -> []VkDescriptorSetLayout{
 
 	return layout;
 }
+
+#scope_file;
+
+#import "File";

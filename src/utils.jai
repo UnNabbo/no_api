@@ -1,6 +1,6 @@
 #scope_module;
 
-NULL_HANDLE :: VK_NULL_HANDLE;
+U64_MAX :: 0xFFFF_FFFF_FFFF_FFFF;
 
 f32 :: float32;
 f64 :: float64;
@@ -10,13 +10,10 @@ push :: array_add;
 array_new :: NewArray;
 init :: init_string_builder;
 
-Color3 :: struct {
-    r, g, b: u8;
-
-}
-
-Color4 :: struct {
-    r, g, b, a: u8;
+NULL_HANDLE :: VK_NULL_HANDLE;
+vk_assert :: val => assert(val == .SUCCESS, "Failed with %", val);
+get_instance_proc_add :: (inst: VkInstance, entry: string) #expand {
+	#insert #run tprint("`% : PFN_% = xx vkGetInstanceProcAddr(inst, \"%\");", entry, entry, entry);
 }
 
 align_next_power_of_2 :: (x: u64, power: u64) -> u64 {
@@ -38,7 +35,6 @@ get :: inline (pool: *Flat_Pool, $type: Type, $initialized := true) -> *type {
 		#if initializer_of(type) inline initializer_of(type)(bytes);
 		else memset(bytes, 0, size_of(type));
 	}
-	
 	return cast(*type, bytes);
 }
 
@@ -80,12 +76,6 @@ clamp_hi :: inline (val: $T, max: T) -> T {
 clamp_lo :: inline (val: $T, min: T) -> T {
 	if val < min return min;
 	else return val;
-}
-
-vk_assert :: val => assert(val == .SUCCESS, "Failed with %", val);
-
-get_instance_proc_add :: (inst: VkInstance, entry: string) #expand {
-	#insert #run tprint("`% : PFN_% = xx vkGetInstanceProcAddr(inst, \"%\");", entry, entry, entry);
 }
 
 align_of :: ($T: Type) -> s64 #expand {

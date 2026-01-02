@@ -194,11 +194,11 @@ gpu_bind_pipeline :: (buffer: *Command_Buffer, pipeline: *Pipeline){
 	vkCmdBindPipeline(buffer, xx pipeline.usage, pipeline);
 }
 
-gpu_clear :: (buffer: Command_Buffer, image: *Texture,  color: Color4){
+gpu_clear :: (buffer: Command_Buffer, image: *Texture,  color: [4] f32){
 	layout := image.layout;
 	transition_image_layout(buffer, image, .TRANSFER_DST_OPTIMAL);
 	clear_range := create_subresource_range(xx VkImageAspectFlagBits.COLOR_BIT);
-	clear_value: VkClearColorValue = .{.[color.r / 255.0, color.g / 255.0, color.b / 255.0, color.a / 255.0]};
+	clear_value: VkClearColorValue = .{.[color[0], color[1], color[2], color[3]]};
 	vkCmdClearColorImage(buffer, image, xx image.layout, *clear_value, 1, *clear_range);
 	transition_image_layout(buffer, image, ifx layout == .UNDEFINED then .GENERAL else layout);
 }

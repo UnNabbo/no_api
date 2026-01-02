@@ -52,7 +52,7 @@ main :: (){
 		}
 		
 		command_buffer := gpu_start_command_recording(*queue);
-		gpu_clear(command_buffer, *backbuffer, {255, 0, 0, 255});
+		gpu_clear(command_buffer, *backbuffer, .[1, 0, 0, 1]);
 		render_pass: Render_Pass_Descriptor;
 		render_pass.color_targets = .[{*backbuffer, .LOAD, .STORE, 0}];
 		gpu_begin_render_pass(command_buffer, render_pass);
