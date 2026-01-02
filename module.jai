@@ -18,8 +18,8 @@ gpu_init :: (texture_heap_size: s64, rwtexture_heap_size: s64, queues: ..Queue_R
 	device = create_device(*physical_device, ..queues);
 	device.allocator = create_gpu_allocator();
 
-	ctx.texture_heap_size = texture_heap_size;
-	ctx.rwtexture_heap_size = rwtexture_heap_size;
+	gpu_context.texture_heap_size = texture_heap_size;
+	gpu_context.rwtexture_heap_size = rwtexture_heap_size;
 }
 
 gpu_create_swapchain :: (window: Window_Type, width:s32, height: s32, present_mode: Swap_Chain_Present_Mode) {
@@ -35,6 +35,8 @@ gpu_resize_swapchain :: (width: s32, height: s32) {
 	surface = create_surface(window_handle);
 	swapchain = create_swapchain(surface, width, height, swapchain.present_mode);
 }
+
+gpu_context: Rendering_Context;
 
 #scope_module;
 
@@ -64,4 +66,4 @@ Rendering_Context :: struct{
 	window_handle: Window_Type;
 }
 
-using ctx: Rendering_Context;
+using gpu_context;
