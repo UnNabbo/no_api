@@ -1,4 +1,4 @@
-gpu_compile_shader :: (path: string, debug := false, is_file := true) -> bool, string {
+gpu_compile_shader :: (path: string, debug := RENDERING_DEBUG, is_file := true) -> bool, string {
 	if !slang_global_session then Slang.slang_createGlobalSession(Slang.SLANG_API_VERSION, *slang_global_session);
 	
 	print_diagnostic_blob :: (blob: *Slang.IBlob) {

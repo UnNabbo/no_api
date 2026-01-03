@@ -32,7 +32,7 @@ Attachment :: struct {
 	load_op: Load_Op  = .NONE;
 	store_op: Store_Op = .NONE;
 	
-	clear_value: f32  = 0;
+	clear_value: []f32;
 }
 
 Render_Pass_Descriptor :: struct {
@@ -106,20 +106,24 @@ gpu_end_command_recording :: (buffer: Command_Buffer){
 	vk_assert(vkEndCommandBuffer(buffer));
 }
 
+gpu_scoped_render_pass :: (buffer: Command_Buffer, render_pass: Render_Pass_Descriptor) #expand {
+	`gpu_begin_render_pass(buffer, render_pass);
+	`defer gpu_end_render_pass(buffer);
+}
+
 gpu_begin_render_pass :: (buffer: Command_Buffer, render_pass: Render_Pass_Descriptor) {
 	render_info: VkRenderingInfo;
 
 	width, height: u32;
 	assert(render_pass.color_targets.count != 0, "Cannot begin a render pass without a single color target"); //NOTE: i dont' think there will ever be a case where you start a render pass without a color targer
-
 	
     render_info.layerCount = 1;
 	attachments := array_new(render_pass.color_targets.count, VkRenderingAttachmentInfo,, temp);
 	for * render_pass.color_targets{
 		assert(it.texture != null, "Attachment texture cannot be null");
-		if it.texture.layout == .UNDEFINED then transition_image_layout(buffer, it.texture, .GENERAL);
 		width = max(width, it.texture.extent.width);
 		height = max(height, it.texture.extent.height);
+		if it.texture.layout == .UNDEFINED then transition_image_layout(buffer, it.texture, .GENERAL);
 		attachments[it_index] = to_vk_attachment(it);
 	}
 
@@ -468,8 +472,13 @@ to_vk_attachment :: (using attachment: Attachment) -> VkRenderingAttachmentInfo 
     vk_attachment.imageLayout = xx texture.layout;
     vk_attachment.storeOp = xx store_op;
 	vk_attachment.loadOp = xx load_op;
-	vk_attachment.clearValue.depthStencil.depth = clear_value;
 
+	if clear_value.count == 1 then vk_attachment.clearValue.depthStencil.depth = clear_value[0];
+	if clear_value.count == 4 {
+		clear_color_value: VkClearColorValue;
+		memcpy(clear_color_value._float32.data, clear_value.data, size_of(f32) * clear_color_value._float32.count);
+		vk_attachment.clearValue.color = clear_color_value;
+	}
 	return vk_attachment;
 }
 

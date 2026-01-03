@@ -59,7 +59,7 @@ Depth_Stencil :: struct {
     back: Stencil;
 };
 
-Blending_State:: struct {
+Blending_State :: struct {
 	Op :: enum {
 		ADD;
 		SUB;
